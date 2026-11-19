@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Just Say It</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a calm lab instrument that does the work; few words, exact results.
+   IDEA: a scientific plate: your sentence is the specimen, the thing it became is mounted beneath it.
+   PICTURE: the made thing itself (a running app, or a live calculator over raw bytes) filling the stage.
+   COLOUR and TYPE: white, ink #10131a, carmine for your words, prussian for machine output; Literata + JetBrains Mono.
+   LAYOUT: modest title, one large request box with idea chips, then the stage; single column, stacks naturally. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);
+--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
+.band{padding:clamp(22px,3.5vw,44px) max(4vw,16px)}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
+h1 em{font-style:normal;color:var(--car)}
+.lede{color:var(--mute);max-width:66ch;margin:0}
+.ask{margin-top:22px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+textarea{display:block;width:100%;min-height:120px;border:0;resize:vertical;padding:18px;background:transparent;color:var(--car);font:clamp(18px,2.2vw,21px)/1.5 Literata,Georgia,serif}
+textarea::placeholder{color:var(--mute)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--line);background:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+button,input{font:inherit;font-size:16px;color:var(--ink)}
+button{min-height:44px;border:0;border-radius:8px;padding:0 18px;background:var(--pru);color:#fff;font-weight:600;cursor:pointer}
+button:disabled{opacity:.55;cursor:progress}
+button.chip{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:400;font-size:15px;padding:0 12px;border-radius:22px}
+button.chip:hover{border-color:var(--car);color:var(--car)}
+button.ghost{background:transparent;color:var(--pru);border:1px solid var(--line)}
+:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+.status{margin-top:14px;font:14px/1.5 'JetBrains Mono',monospace;color:var(--mute);min-height:21px}
+.status.bad{color:var(--car)}
+.stage{margin-top:18px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.stage[hidden]{display:none}
+.shead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line)}
+.shead h2{margin:0;font-size:22px;font-weight:600}
+.tag{font:600 13px 'JetBrains Mono',monospace;color:var(--pru)}
+.explain{padding:10px 16px 0;color:var(--mute);margin:0}
+iframe{display:block;width:100%;height:min(620px,75vh);border:0;background:#fff}
+.fn{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:0}
+@media(max-width:760px){.fn{grid-template-columns:minmax(0,1fr)}}
+.fn>div{padding:16px}
+.fn>div+div{border-left:1px solid var(--line)}
+@media(max-width:760px){.fn>div+div{border-left:0;border-top:1px solid var(--line)}}
+.inputs{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:14px;color:var(--mute);gap:4px}
+input{width:130px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0 10px;font-family:'JetBrains Mono',monospace}
+.out{font:600 clamp(28px,5vw,44px)/1.1 'JetBrains Mono',monospace;color:var(--pru);margin-top:18px;overflow-wrap:anywhere}
+.tests{font:14px/1.8 'JetBrains Mono',monospace}
+.tests .p{color:var(--pru)}.tests .f{color:var(--car)}
+.tests h3{font:600 15px Literata,serif;margin:0 0 6px;color:var(--ink)}
+details{border-top:1px solid var(--line)}
+summary{cursor:pointer;padding:12px 16px;min-height:44px;color:var(--mute);font-size:15px}
+pre{margin:0;padding:0 16px 16px;font:12.5px/1.55 'JetBrains Mono',monospace;color:var(--pru);white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto}
+.change{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.change input{flex:1 1 240px;width:auto;font-family:Literata,serif;color:var(--car)}
+.hist{margin-top:26px}
+.hist h3{font-size:17px;margin:0 0 8px;font-weight:600}
+.hist ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.note{font-size:14px;color:var(--mute);margin-top:20px;max-width:80ch}
+.off{margin-top:18px;padding:14px 16px;border-radius:10px;background:var(--panel);color:var(--mute)}
+@media(prefers-reduced-motion:no-preference){.stage{animation:rise .4s ease}@keyframes rise{from{opacity:0;transform:translateY(8px)}}}
+</style>
+</head>
+<body>
+<div class="band"><div class="wrap">
+  <h1>Say what you want. <em>Get the thing.</em></h1>
+  <p class="lede">Describe it in your own words. Number puzzles come back as raw machine bytes that are tested before you see them. Anything else comes back as a working app. You never have to read code.</p>
+
+  <div class="ask">
+    <textarea id="req" aria-label="What do you want?" placeholder="e.g. A tip calculator that splits the bill between friends and rounds up to the nearest pound"></textarea>
+    <div class="bar">
+      <div class="chips" id="chips"></div>
+      <button id="make">Make it</button>
+    </div>
+  </div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div class="off" id="off" hidden>This page needs permission to ask Claude, and it can't here. Open it on claude.ai while signed in.</div>
+
+  <section class="stage" id="stage" hidden>
+    <div class="shead"><h2 id="title"></h2><span class="tag" id="tag"></span></div>
+    <p class="explain" id="explain"></p>
+    <div id="body" style="margin-top:10px"></div>
+    <div class="change">
+      <input id="chg" placeholder="Ask for a change, e.g. make it dark green and add a reset button" aria-label="Ask for a change">
+      <button class="ghost" id="chgBtn">Change it</button>
+    </div>
+    <details><summary id="peekLabel">Peek under the hood</summary><pre id="peek"></pre></details>
+  </section>
+
+  <div class="hist" id="hist" hidden><h3>Made this session</h3><ul id="histList"></ul></div>
+
+  <p class="note">How it works: your words go to Claude, which decides what kind of thing you want. Calculations on whole numbers come back as a WebAssembly binary written byte by byte. This page validates it, runs Claude's own test cases, and sends any failure back for repair (up to 3 tries). Everything else comes back as a small app running in a sealed box. The code still exists, it's just not your problem unless you peek.</p>
+</div></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const IDEAS = ['The nth prime number', 'Is this year a leap year?', 'A tip calculator that splits the bill', 'A 25-minute focus timer with a progress ring', 'Snake game', 'Days between two dates', 'Sum of the digits of a number', 'A packing checklist for a weekend trip'];
+$('chips').innerHTML = IDEAS.map(i => `<button class="chip">${esc(i)}</button>`).join('');
+$('chips').addEventListener('click', e => { if (e.target.classList.contains('chip')) { $('req').value = e.target.textContent; make(); } });
+
+const SYSTEM = `You turn a person's plain-English request into a working thing. Choose ONE kind.
+
+KIND "function": the request is a calculation whose inputs and output can all be whole numbers (1 to 4 integer inputs, 1 integer output; true/false = 1/0; years, counts, digits, primes, etc.).
+Write a complete WebAssembly binary module directly as hex bytes. Do NOT write WAT or any source code first; emit the bytes. Requirements: magic+version, one type (i32 params -> i32 result), one function, export named "run" (kind func, index 0), code section with correct LEB128 sizes. Use only i32 instructions.
+Also give 5 or 6 test cases you are confident about, as JSON [[[args...], expected], ...].
+Reply EXACTLY in this format:
+<kind>function</kind><title>short title</title><explain>one plain sentence on what it does and what the inputs mean</explain><params>comma-separated short input names</params><hex>hex bytes</hex><tests>JSON</tests>
+
+KIND "app": anything else that can be an interactive web page (tools, calculators with decimals or text, timers, games, checklists, converters, visual things).
+Write ONE complete self-contained HTML document: inline CSS and JS only, no external scripts, fonts, images or network calls, no alert/confirm/prompt. It must look polished and modern, work on a phone, fill a 600px-tall frame nicely, use plain friendly labels, and work immediately with sensible defaults.
+Reply EXACTLY in this format:
+<kind>app</kind><title>short title</title><explain>one plain sentence on what it does</explain><html><!DOCTYPE html>...</html_end>
+
+No other text before or after.`;
+
+const tag = (t, name) => { const m = t.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}${name === 'html' ? '_end' : ''}>`)); return m ? m[1].trim() : null; };
+const hexBytes = h => { const c = (h || '').replace(/0x/gi, '').replace(/[^0-9a-f]/gi, ''); return new Uint8Array(c.match(/../g)?.map(x => parseInt(x, 16)) || []); };
+const pretty = b => Array.from(b, x => x.toString(16).padStart(2, '0')).join(' ');
+
+let sample = null, busy = false, current = null, convo = [];
+const history = [];
+const setStatus = (m, bad) => { $('status').textContent = m; $('status').className = 'status' + (bad ? ' bad' : ''); };
+
+claude.use('sample').then(s => { sample = s; if (!s) { $('off').hidden = false; $('make').disabled = true; } }).catch(() => { $('off').hidden = false; });
+
+async function ask(messages, label) {
+  let chars = 0;
+  const r = await sample(messages, { modelTier: 'default', cache: false, onText: ({ text }) => { chars = text.length; setStatus(`${label} … ${chars.toLocaleString()} characters so far`); } });
+  return r.text;
+}
+
+async function testFunction(p) {
+  const bytes = hexBytes(p.hex);
+  let fn;
+  try { fn = (await WebAssembly.instantiate(bytes)).instance.exports.run; if (typeof fn !== 'function') throw new Error('no exported function called "run"'); }
+  catch (e) { return { ok: false, bytes, why: 'The binary is not a valid WebAssembly module: ' + e.message }; }
+  let tests = []; try { tests = JSON.parse(p.tests); } catch (e) {}
+  const results = tests.map(([a, w]) => { let g; try { g = fn(...a); } catch (e) { g = 'crash'; } return { a, w, g, pass: g === w }; });
+  const fails = results.filter(r => !r.pass);
+  return { ok: fails.length === 0, bytes, fn, results, why: fails.map(f => `run(${f.a}) returned ${f.g}, expected ${f.w}`).join('; ') };
+}
+
+async function produce(userText) {
+  convo = [{ role: 'user', content: SYSTEM + '\n\nRequest: ' + userText }];
+  return refine(null);
+}
+async function refine(changeText) {
+  if (changeText) convo.push({ role: 'user', content: `Change it: ${changeText}\nReply with the complete new version in the same format.` });
+  let attempt = 0, p, check;
+  while (attempt < 3) {
+    attempt++;
+    const text = await ask(convo, attempt === 1 ? 'Making it' : `Repair attempt ${attempt}`);
+    convo.push({ role: 'assistant', content: text });
+    p = { kind: tag(text, 'kind'), title: tag(text, 'title') || 'Untitled', explain: tag(text, 'explain') || '', params: (tag(text, 'params') || '').split(',').map(s => s.trim()).filter(Boolean), hex: tag(text, 'hex'), tests: tag(text, 'tests'), html: tag(text, 'html') };
+    if (p.kind === 'app' && p.html) return { ...p, attempts: attempt };
+    if (p.kind === 'function' && p.hex) {
+      check = await testFunction(p);
+      if (check.ok) return { ...p, check, attempts: attempt };
+      setStatus(`Attempt ${attempt} failed its own checks. Sending it back for repair…`, true);
+      convo.push({ role: 'user', content: `That binary failed: ${check.why}. Fix it and reply with the complete corrected version in the same format.` });
+      continue;
+    }
+    convo.push({ role: 'user', content: 'Your reply was not in the required format. Reply again using exactly the tags requested.' });
+  }
+  return p && p.kind === 'function' ? { ...p, check, attempts: attempt, failed: true } : null;
+}
+
+function show(p) {
+  current = p;
+  $('stage').hidden = false;
+  $('title').textContent = p.title;
+  $('explain').textContent = p.explain;
+  if (p.kind === 'app') {
+    $('tag').textContent = 'Working app';
+    const guard = `<script>addEventListener('error',e=>parent.postMessage({jsi:'err',m:String(e.message)},'*'));<\/script>`;
+    const html = p.html.includes('<head>') ? p.html.replace('<head>', '<head>' + guard) : guard + p.html;
+    $('body').innerHTML = '<iframe id="frame" title="The app you asked for" sandbox="allow-scripts allow-forms"></iframe>';
+    $('frame').srcdoc = html;
+    $('peekLabel').textContent = `Peek under the hood (${p.html.length.toLocaleString()} characters of hidden code)`;
+    $('peek').textContent = p.html;
+  } else {
+    const c = p.check, n = c.results?.length || 0, ok = c.results?.filter(r => r.pass).length || 0;
+    $('tag').textContent = `${c.bytes.length} bytes · ${p.failed ? 'still failing' : 'tested'} · ${p.attempts} attempt${p.attempts > 1 ? 's' : ''}`;
+    $('body').innerHTML = `<div class="fn"><div>
+        <div class="inputs">${p.params.map((nm, i) => `<label for="in${i}">${esc(nm)}<input id="in${i}" type="number" step="1" value="${c.results?.[0]?.a?.[i] ?? 7}"></label>`).join('')}<button id="go">Run</button></div>
+        <div class="out" id="out">–</div></div>
+      <div class="tests"><h3>Its own checks: ${ok}/${n} pass</h3>${(c.results || []).map(r => `<div class="${r.pass ? 'p' : 'f'}">${r.pass ? '✓' : '✗'} run(${r.a.join(', ')}) = ${r.g}${r.pass ? '' : ' (wanted ' + r.w + ')'}</div>`).join('')}
+      ${p.failed ? `<p style="color:var(--car);font-family:Literata,serif">It couldn't get this right in 3 tries: ${esc(c.why)}</p>` : ''}</div></div>`;
+    const run = () => { if (!c.fn) { $('out').textContent = 'Not runnable'; return; } const args = p.params.map((_, i) => parseInt($('in' + i).value || '0', 10) | 0); try { $('out').textContent = String(c.fn(...args)); } catch (e) { $('out').textContent = 'Crashed'; } };
+    $('go').addEventListener('click', run);
+    $('body').querySelectorAll('input').forEach(el => el.addEventListener('input', run));
+    run();
+    $('peekLabel').textContent = `Peek at the raw binary (${c.bytes.length} bytes, no source code exists)`;
+    $('peek').textContent = pretty(c.bytes);
+  }
+  if (!history.includes(p)) { history.unshift(p); }
+  $('hist').hidden = history.length < 2;
+  $('histList').innerHTML = history.map((h, i) => `<li><button class="chip" data-i="${i}">${esc(h.title)}</button></li>`).join('');
+}
+$('histList').addEventListener('click', e => { const i = e.target.dataset.i; if (i !== undefined) show(history[+i]); });
+
+let lastErr = 0;
+addEventListener('message', e => {
+  const f = $('frame');
+  if (!f || e.source !== f.contentWindow || e.data?.jsi !== 'err') return;
+  if (Date.now() - lastErr < 4000) return; lastErr = Date.now();
+  setStatus('The app hit an error: ' + e.data.m + '. Use "Change it" and say "fix the error" to repair it.', true);
+});
+
+async function go(fnc) {
+  if (busy || !sample) return;
+  busy = true; $('make').disabled = $('chgBtn').disabled = true;
+  try {
+    const p = await fnc();
+    if (!p) setStatus("It couldn't make that one. Try wording it differently.", true);
+    else { show(p); setStatus(p.failed ? 'Done, but the binary still fails some checks.' : `Done${p.kind === 'function' ? ', all checks passed' : ''}.`, p.failed); }
+  } catch (e) {
+    if (e?.code === 'not_granted') { $('off').hidden = false; setStatus(''); }
+    else if (e?.code === 'rate_limited') setStatus('Too many requests just now. Wait a minute and try again.', true);
+    else setStatus('Something went wrong: ' + (e?.message || e), true);
+  } finally { busy = false; $('make').disabled = $('chgBtn').disabled = false; }
+}
+function make() { const t = $('req').value.trim(); if (!t) { $('req').focus(); return; } try { localStorage.setItem('jsi-req', t); } catch (e) {} go(() => produce(t)); }
+$('make').addEventListener('click', make);
+$('req').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) make(); });
+$('chgBtn').addEventListener('click', () => { const t = $('chg').value.trim(); if (!t || !current) return; $('chg').value = ''; go(() => refine(t)); });
+$('chg').addEventListener('keydown', e => { if (e.key === 'Enter') $('chgBtn').click(); });
+try { const s = localStorage.getItem('jsi-req'); if (s) $('req').value = s; } catch (e) {}
+}
+</script>
+</body>
+</html>

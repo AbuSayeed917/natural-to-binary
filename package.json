@@ -1,0 +1,11 @@
+{
+  "name": "natural-to-binary",
+  "version": "0.1.0",
+  "description": "Plain English compiled straight to WebAssembly binary, with no programming language in between.",
+  "license": "MIT",
+  "author": "Muhammad Abu Sayeed",
+  "scripts": {
+    "test": "node compilers/structured-english/test.cjs && node compilers/tiny-machine/test.cjs && node compilers/english-to-binary/test.cjs && cd experiments/01-direct-wasm-benchmark && node run.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

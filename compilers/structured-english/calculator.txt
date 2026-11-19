@@ -1,0 +1,24 @@
+# A calculator, in Structured English v0.1
+The screen is charcoal.
+A display at the top shows numbers in lime.
+Buttons, four per row: 7 8 9 ÷ 4 5 6 × 1 2 3 − C 0 = +.
+The operation buttons are orange.
+Remember a number called entry, a number called total, and an operation.
+
+When I press a digit:
+  Entry becomes entry times 10 plus the digit.
+  Show entry.
+
+When I press an operation:
+  Total becomes entry.
+  Remember the operation.
+  Entry becomes 0.
+
+When I press equals:
+  Apply the operation to total and entry, and put the answer in entry.
+  Show entry.
+
+When I press C:
+  Entry becomes 0.
+  Total becomes 0.
+  Show entry.

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English to Binary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: precise, curious lab instrument; quiet and exact.
+   IDEA: a scientific plate, English specimen on the left, its binary dissection on the right, leader lines joining them.
+   PICTURE: the live byte map, each sentence mapped to the exact bytes it became, with a ribbon of the whole module.
+   COLOUR and TYPE: white, ink #10131a, carmine for English, prussian for bytes; Literata for words, JetBrains Mono for bytes.
+   LAYOUT: modest title, then editor | byte map side by side, then a run strip; stacks below 860px. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);
+--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922);
+--ok:light-dark(#0b4f8a,#6fb3ff)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
+.band{padding:clamp(22px,3.5vw,48px) max(4vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
+h1 .e{color:var(--car)}h1 .b{color:var(--pru);font-family:'JetBrains Mono',monospace;font-weight:600}
+.lede{color:var(--mute);max-width:68ch;margin:0}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:20px;margin-top:22px}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--bg);display:flex;flex-direction:column}
+.head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.head h2{font-size:17px;margin:0;font-weight:600}
+.head h2 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:1px}
+select,button,input{font:inherit;font-size:16px;color:var(--ink)}
+select{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0 10px;max-width:100%}
+button{min-height:44px;border:0;border-radius:8px;padding:0 16px;background:var(--pru);color:#fff;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--pru);border:1px solid var(--line)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+textarea{flex:1;min-height:360px;border:0;resize:vertical;padding:16px;background:var(--panel);color:var(--ink);
+font:17px/1.7 Literata,Georgia,serif;border-radius:0 0 10px 10px}
+.map{padding:6px 0;overflow:auto;max-height:520px}
+.row{display:grid;grid-template-columns:minmax(0,0.9fr) minmax(0,1.3fr);gap:14px;padding:7px 14px;align-items:start;position:relative}
+.row:hover{background:var(--panel)}
+.row .en{color:var(--car);font-size:15px}
+.row.meta .en{color:var(--mute);font-style:italic;font-size:14px}
+.row .hx{font:13.5px/1.6 'JetBrains Mono',monospace;color:var(--pru);word-spacing:2px;overflow-wrap:anywhere;border-left:2px solid var(--line);padding-left:12px}
+.row.meta .hx{color:var(--mute)}
+.row:not(.meta) .hx{border-left-color:var(--car)}
+@media(max-width:520px){.row{grid-template-columns:minmax(0,1fr);gap:2px}}
+.err{margin:14px;padding:12px 14px;border-radius:8px;background:light-dark(#fde8ea,#3a1418);color:var(--car)}
+.ribbon{font:12px/1.5 'JetBrains Mono',monospace;color:var(--mute);padding:12px 14px;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.stat{font:600 14px 'JetBrains Mono',monospace;color:var(--pru)}
+.run{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:20px}
+@media(max-width:860px){.run{grid-template-columns:minmax(0,1fr)}}
+.inputs{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:14px}
+label{display:flex;flex-direction:column;font-size:14px;color:var(--mute);gap:4px}
+input{width:130px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0 10px;font-family:'JetBrains Mono',monospace}
+.out{font:600 clamp(30px,5vw,46px)/1 'JetBrains Mono',monospace;color:var(--pru);padding:0 14px 16px}
+.tests{padding:4px 14px 14px;font:14px/1.8 'JetBrains Mono',monospace}
+.tests .p{color:var(--ok)}.tests .f{color:var(--car)}
+.guide{columns:2 260px;gap:28px;font-size:15px;color:var(--mute)}
+.guide p{margin:0 0 10px;break-inside:avoid}.guide b{color:var(--ink);font-weight:600}
+.note{font-size:14px;color:var(--mute);margin-top:14px;max-width:80ch}
+@media(prefers-reduced-motion:no-preference){.row.new{animation:in .35s ease}@keyframes in{from{opacity:0;transform:translateX(-6px)}}}
+</style>
+</head>
+<body>
+<div class="band"><div class="wrap">
+  <h1><span class="e">English</span> in, <span class="b">01100001</span> out</h1>
+  <p class="lede">Write instructions in plain English and they compile straight to a WebAssembly binary your browser runs. There's no programming language in between, and no AI: it runs offline in this page.</p>
+
+  <div class="grid">
+    <section class="card">
+      <div class="head"><h2><span class="dot" style="background:var(--car)"></span>Your instructions</h2>
+        <select id="ex" aria-label="Load an example"></select></div>
+      <textarea id="src" spellcheck="false" aria-label="English instructions"></textarea>
+    </section>
+    <section class="card">
+      <div class="head"><h2><span class="dot" style="background:var(--pru)"></span>What each sentence became</h2>
+        <span class="stat" id="size"></span></div>
+      <div class="map" id="map"></div>
+      <div class="ribbon" id="ribbon"></div>
+    </section>
+  </div>
+
+  <div class="run">
+    <section class="card">
+      <div class="head"><h2>Run the binary</h2>
+        <button class="ghost" id="copy">Copy bytes</button></div>
+      <div class="inputs" id="inputs"></div>
+      <div class="out" id="out" aria-live="polite">–</div>
+    </section>
+    <section class="card">
+      <div class="head"><h2>Example checks</h2><span class="stat" id="score"></span></div>
+      <div class="tests" id="tests"></div>
+    </section>
+  </div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+  <h2 style="font-size:24px;margin:0 0 14px">Sentences it understands</h2>
+  <div class="guide">
+    <p><b>Given n.</b> or <b>Given a and b.</b> names the inputs. Always start with this.</p>
+    <p><b>Let x be …</b>, <b>Set x to …</b> or <b>x becomes …</b> stores a value.</p>
+    <p><b>Add 1 to x</b>, <b>Increase x by 2</b>, <b>Decrease x by 1</b>, <b>Subtract 3 from x</b>, <b>Multiply x by y</b>, <b>Divide x by 2</b>.</p>
+    <p><b>While … :</b> (or <b>Repeat while</b>, <b>As long as</b>) starts a loop. Close it with <b>End.</b></p>
+    <p><b>If … :</b> and <b>Otherwise:</b>, closed with <b>End.</b> One-liners work too: <b>If n is 0, return 1.</b></p>
+    <p><b>Return …</b> gives the answer.</p>
+    <p>Maths: <b>plus</b>, <b>minus</b>, <b>times</b>, <b>divided by</b>, <b>mod</b>, <b>squared</b>, brackets, and numbers as digits or words up to twelve.</p>
+    <p>Comparisons: <b>is</b>, <b>is not</b>, <b>is greater than</b>, <b>is less than</b>, <b>is at least</b>, <b>is at most</b>, <b>is divisible by</b>, joined with <b>and</b> / <b>or</b>.</p>
+    <p>Lines starting with <b>#</b> are notes and are ignored. Whole numbers only (32-bit).</p>
+  </div>
+  <p class="note">The honest catch: this understands a fixed set of English patterns, so it's really a programming language that reads like English. Understanding truly free-form English needs an AI model, which is where the API-key version of this project comes in.</p>
+</div></div>
+
+<script>
+{
+// English -> WebAssembly bytes. No AI, no source layer: sentences are turned straight into opcodes.
+function compileEnglish(text) {
+  const NUMWORDS = { zero:0, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12, hundred:100 };
+  const OPS = { '+':0x6a, '-':0x6b, '*':0x6c, '/':0x6d, '%':0x6f, '==':0x46, '!=':0x47, '<':0x48, '>':0x4a, '<=':0x4c, '>=':0x4e, '&&':0x71, '||':0x72 };
+  const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+  const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
+
+  const params = [], locals = [], vars = {};
+  const slot = name => vars[name];
+  const declare = name => { if (!(name in vars)) { vars[name] = params.length + locals.length; locals.push(name); } return vars[name]; };
+  const fail = (msg) => { throw new Error(msg); };
+
+  // ---- expressions ----
+  function tokens(src) {
+    let s = ' ' + src.toLowerCase().replace(/\bthe\b|\bvalue of\b/g, ' ') + ' ';
+    s = s.replace(/(\w+) squared/g, '( $1 * $1 )');
+    const phrases = [
+      [/is divisible by|is a multiple of/g, ' DIVBY '],
+      [/is greater than or equal to|is at least|is not less than/g, ' >= '],
+      [/is less than or equal to|is at most|is not more than/g, ' <= '],
+      [/is greater than|is more than|is bigger than|is above/g, ' > '],
+      [/is less than|is smaller than|is below/g, ' < '],
+      [/is not equal to|does not equal|is not/g, ' != '],
+      [/is equal to|equals|\bis\b/g, ' == '],
+      [/divided by/g, ' / '], [/multiplied by|\btimes\b/g, ' * '],
+      [/\bplus\b/g, ' + '], [/\bminus\b/g, ' - '], [/\bmodulo\b|\bmod\b/g, ' % '],
+      [/\band\b/g, ' && '], [/\bor\b/g, ' || '],
+    ];
+    for (const [re, rep] of phrases) s = s.replace(re, rep);
+    s = s.replace(/(>=|<=|==|!=|&&|\|\||[()+\-*/%<>])/g, ' $1 ');
+    return s.trim().split(/\s+/).filter(Boolean);
+  }
+  function expr(src) {
+    const t = tokens(src); let i = 0; const out = [];
+    const peek = () => t[i];
+    const level = (ops, next) => () => {
+      next();
+      while (ops.includes(peek())) { const op = t[i++]; next(); if (op === 'DIVBY') out.push(0x6f, 0x45); else out.push(OPS[op]); }
+    };
+    const atom = () => {
+      const tok = t[i++];
+      if (tok === undefined) fail('the sentence ends too early');
+      if (tok === '(') { or(); if (t[i++] !== ')') fail('missing a closing bracket'); return; }
+      if (tok === '-') { out.push(0x41, 0); atom(); out.push(0x6b); return; }
+      if (/^-?\d+$/.test(tok)) { out.push(0x41, ...sleb(parseInt(tok, 10) | 0)); return; }
+      if (tok in NUMWORDS) { out.push(0x41, ...sleb(NUMWORDS[tok])); return; }
+      if (slot(tok) === undefined) fail(`I don't know what "${tok}" is`);
+      out.push(0x20, ...uleb(slot(tok)));
+    };
+    const mul = level(['*', '/', '%'], atom), add = level(['+', '-'], mul);
+    const rel = level(['==', '!=', '<', '>', '<=', '>=', 'DIVBY'], add);
+    const and = level(['&&'], rel), or = level(['||'], and);
+    or();
+    if (i < t.length) fail(`I don't understand "${t.slice(i).join(' ')}"`);
+    return out;
+  }
+  const setVar = (name, bytes) => [...bytes, 0x21, ...uleb(declare(name))];
+  const update = (name, opBytes, valSrc) => {
+    if (slot(name) === undefined) fail(`I don't know what "${name}" is`);
+    return [0x20, ...uleb(slot(name)), ...expr(valSrc), opBytes, 0x21, ...uleb(slot(name))];
+  };
+
+  // ---- statements ----
+  const stack = [];
+  function statement(s) {
+    let m;
+    if ((m = s.match(/^(?:given|take|inputs?:?)\s+(.+)$/))) {
+      if (params.length || locals.length) fail('inputs must come first');
+      for (const p of m[1].split(/\s*(?:,|\band\b)\s*/).filter(Boolean)) { vars[p] = params.length; params.push(p); }
+      return [];
+    }
+    if ((m = s.match(/^(?:while|repeat while|as long as|loop while)\s+(.+?)(?:,?\s*(?:do|repeat))?$/))) {
+      stack.push('while'); return [0x02, 0x40, 0x03, 0x40, ...expr(m[1]), 0x45, 0x0d, 0x01];
+    }
+    if ((m = s.match(/^if\s+(.+?)\s*(?:,\s*then|,|\bthen\b)\s*(.+)$/))) return [...expr(m[1]), 0x04, 0x40, ...statement(m[2]), 0x0b];
+    if ((m = s.match(/^if\s+(.+)$/))) { stack.push('if'); return [...expr(m[1]), 0x04, 0x40]; }
+    if (/^(?:otherwise|else)$/.test(s)) { if (stack.at(-1) !== 'if') fail('"otherwise" without an "if"'); stack[stack.length - 1] = 'else'; return [0x05]; }
+    if (/^(?:end|done|stop)$/.test(s)) {
+      const b = stack.pop(); if (!b) fail('"end" without a loop or "if"');
+      return b === 'while' ? [0x0c, 0x00, 0x0b, 0x0b] : [0x0b];
+    }
+    if ((m = s.match(/^(?:return|give back|answer|the answer is|output)\s+(.+)$/))) return [...expr(m[1]), 0x0f];
+    if ((m = s.match(/^(?:let|set)\s+(\w+)\s+(?:be|to|equal to|=)\s+(.+)$/))) return setVar(m[1], expr(m[2]));
+    if ((m = s.match(/^(\w+)\s+(?:becomes|=)\s+(.+)$/))) return setVar(m[1], expr(m[2]));
+    if ((m = s.match(/^(?:add)\s+(.+)\s+to\s+(\w+)$/))) return update(m[2], 0x6a, m[1]);
+    if ((m = s.match(/^increase\s+(\w+)\s+by\s+(.+)$/))) return update(m[1], 0x6a, m[2]);
+    if ((m = s.match(/^subtract\s+(.+)\s+from\s+(\w+)$/))) return update(m[2], 0x6b, m[1]);
+    if ((m = s.match(/^decrease\s+(\w+)\s+by\s+(.+)$/))) return update(m[1], 0x6b, m[2]);
+    if ((m = s.match(/^multiply\s+(\w+)\s+by\s+(.+)$/))) return update(m[1], 0x6c, m[2]);
+    if ((m = s.match(/^divide\s+(\w+)\s+by\s+(.+)$/))) return update(m[1], 0x6d, m[2]);
+    fail('I don\'t understand this sentence');
+  }
+
+  const lines = [];
+  text.split('\n').forEach((raw, n) => {
+    raw.split(/\.\s+|:\s+/).forEach(part => {
+      const s = part.trim().toLowerCase().replace(/[.:;]+$/, '').trim();
+      if (s && !s.startsWith('#')) lines.push({ n: n + 1, text: part.trim().replace(/[.]+$/, ''), s });
+    });
+  });
+  const mapping = [];
+  for (const l of lines) {
+    try { mapping.push({ line: l.text, bytes: statement(l.s) }); }
+    catch (e) { throw new Error(`Line ${l.n} ("${l.text}"): ${e.message}`); }
+  }
+  if (stack.length) throw new Error(`A ${stack.at(-1) === 'while' ? 'loop' : '"if"'} is missing its "end"`);
+  if (!params.length) throw new Error('Start with "given ..." to name the inputs, e.g. "given n" or "given a and b"');
+
+  const code = mapping.flatMap(m => m.bytes);
+  const localDecl = locals.length ? [0x01, ...uleb(locals.length), 0x7f] : [0x00];
+  const body = [...localDecl, ...code, 0x41, 0x00, 0x0b];
+  const entry = [0x01, ...uleb(body.length), ...body];
+  const typeSec = [0x01, 0x60, ...uleb(params.length), ...params.map(() => 0x7f), 0x01, 0x7f];
+  const parts = [
+    { line: 'WebAssembly header', bytes: [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00], meta: true },
+    { line: `Type: ${params.length} number input${params.length > 1 ? 's' : ''} → 1 number out`, bytes: [0x01, ...uleb(typeSec.length), ...typeSec], meta: true },
+    { line: 'Declare one function', bytes: [0x03, 0x02, 0x01, 0x00], meta: true },
+    { line: 'Export it as "run"', bytes: [0x07, 0x07, 0x01, 0x03, 0x72, 0x75, 0x6e, 0x00, 0x00], meta: true },
+    { line: `Code section, ${locals.length} working variable${locals.length === 1 ? '' : 's'}`, bytes: [0x0a, ...uleb(entry.length), 0x01, ...uleb(body.length), ...localDecl], meta: true },
+    ...mapping,
+    { line: 'End of function', bytes: [0x41, 0x00, 0x0b], meta: true },
+  ];
+  return { bytes: new Uint8Array(parts.flatMap(p => p.bytes)), parts, params };
+}
+
+
+const EXAMPLES = {
+  "Factorial": {
+    tests: [[[0],1],[[5],120],[[10],3628800]],
+    text: `Given n.
+Let result be 1.
+While n is greater than 1:
+  Multiply result by n.
+  Decrease n by 1.
+End.
+Return result.`},
+  "Fibonacci": {
+    tests: [[[0],0],[[1],1],[[10],55],[[30],832040]],
+    text: `Given n.
+Let a be 0.
+Let b be 1.
+Repeat while n is greater than 0:
+  Let t be a plus b.
+  Set a to b.
+  Set b to t.
+  Decrease n by 1.
+End.
+Return a.`},
+  "Greatest common divisor": {
+    tests: [[[12,18],6],[[17,5],1],[[48,180],12]],
+    text: `Given a and b.
+While b is not 0:
+  Let t be a mod b.
+  Set a to b.
+  Set b to t.
+End.
+Return a.`},
+  "Is it prime?": {
+    tests: [[[1],0],[[2],1],[[21],0],[[97],1]],
+    text: `Given n.
+If n is less than 2, return 0.
+Let i be 2.
+While i times i is at most n:
+  If n is divisible by i, return 0.
+  Add 1 to i.
+End.
+Return 1.`},
+  "Bigger of two": {
+    tests: [[[3,9],9],[[9,3],9],[[-2,-7],-2]],
+    text: `Given a and b.
+If a is greater than b, return a.
+Return b.`},
+  "Sum from 1 to n": {
+    tests: [[[10],55],[[1000],500500]],
+    text: `Given n.
+Return n times (n plus 1) divided by two.`},
+  "Grade a score": {
+    tests: [[[95],1],[[75],2],[[55],3],[[20],4]],
+    text: `# 1 = A, 2 = B, 3 = C, 4 = fail
+Given score.
+If score is at least 90, return 1.
+If score is at least 70, return 2.
+If score is at least 50:
+  Return 3.
+Otherwise:
+  Return 4.
+End.`}
+};
+
+
+const $ = id => document.getElementById(id);
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, '0')).join(' ');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let current = null, fn = null, activeTests = null, lastKey = '';
+
+$('ex').innerHTML = '<option value="">Load an example…</option>' + Object.keys(EXAMPLES).map(k => `<option>${esc(k)}</option>`).join('');
+function load(name) { $('src').value = EXAMPLES[name].text; activeTests = EXAMPLES[name].tests; $('ex').value = name; build(); }
+$('ex').addEventListener('change', e => { if (e.target.value) load(e.target.value); });
+$('src').addEventListener('input', () => { activeTests = null; $('ex').value = ''; build(); });
+
+async function build() {
+  const text = $('src').value;
+  try { localStorage.setItem('nl2bin-src', text); } catch (e) {}
+  let r;
+  try { r = compileEnglish(text); }
+  catch (e) {
+    current = fn = null;
+    $('map').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    $('ribbon').textContent = ''; $('size').textContent = ''; $('out').textContent = '–';
+    $('tests').innerHTML = ''; $('score').textContent = ''; return;
+  }
+  current = r;
+  $('map').innerHTML = r.parts.map(p => `<div class="row new ${p.meta ? 'meta' : ''}"><div class="en">${esc(p.line)}</div><div class="hx">${hex(p.bytes) || '(names the inputs, no bytes)'}</div></div>`).join('');
+  $('ribbon').textContent = hex(r.bytes);
+  $('size').textContent = r.bytes.length + ' bytes';
+  try { fn = (await WebAssembly.instantiate(r.bytes)).instance.exports.run; }
+  catch (e) { fn = null; $('map').insertAdjacentHTML('afterbegin', `<div class="err">The binary didn't validate: ${esc(e.message)}</div>`); }
+  const key = r.params.join(',');
+  if (key !== lastKey) {
+    lastKey = key;
+    $('inputs').innerHTML = r.params.map((p, i) => `<label for="in${i}">${esc(p)}<input id="in${i}" type="number" step="1" value="${i ? 18 : 12}"></label>`).join('') + '<button id="go">Run</button>';
+    $('go').addEventListener('click', run);
+    $('inputs').querySelectorAll('input').forEach(el => el.addEventListener('input', run));
+  }
+  run(); check();
+}
+function run() {
+  if (!fn || !current) { $('out').textContent = '–'; return; }
+  const args = current.params.map((_, i) => parseInt($('in' + i).value || '0', 10) | 0);
+  try { $('out').textContent = `run(${args.join(', ')}) = ${fn(...args)}`; }
+  catch (e) { $('out').textContent = 'The program crashed: ' + e.message; }
+}
+function check() {
+  if (!activeTests || !fn) { $('tests').innerHTML = '<span style="color:var(--mute)">Load an example to see its checks. Your own edits run live on the left.</span>'; $('score').textContent = ''; return; }
+  let ok = 0;
+  $('tests').innerHTML = activeTests.map(([a, w]) => { let g; try { g = fn(...a); } catch (e) { g = 'crash'; } const p = g === w; if (p) ok++;
+    return `<div class="${p ? 'p' : 'f'}">${p ? '✓' : '✗'} run(${a.join(', ')}) = ${g}${p ? '' : ' (expected ' + w + ')'}</div>`; }).join('');
+  $('score').textContent = `${ok}/${activeTests.length} pass`;
+}
+$('copy').addEventListener('click', async () => {
+  if (!current) return;
+  try { await navigator.clipboard.writeText(hex(current.bytes)); $('copy').textContent = 'Copied'; }
+  catch (e) { $('copy').textContent = 'Select the ribbon to copy'; }
+  setTimeout(() => $('copy').textContent = 'Copy bytes', 1600);
+});
+
+let saved = null; try { saved = localStorage.getItem('nl2bin-src'); } catch (e) {}
+if (saved) { $('src').value = saved; build(); } else load('Is it prime?');
+}
+</script>
+</body>
+</html>
