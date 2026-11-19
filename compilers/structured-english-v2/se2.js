@@ -1,0 +1,344 @@
+// Structured English v0.2 -> WebAssembly binary for a 160x240 "Tiny Phone" machine.
+// The machine provides: memory (screen = 1 byte per pixel, 16 colours), and calls start(), draw(), click(x, y), key(code).
+// Numbers are stored with 2 decimal places (x100), so money and decimals work.
+function compileSE2(text) {
+  const W = 160, H = 240;
+  const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
+  const OP_AT = 39000, DISP_AT = 39100, PLACES_AT = 39500, VARS_AT = 40000, BOX_AT = 41000, LIST_AT = 42000, STR_AT = 50000, FONT_AT = 60000;
+  const BOX_MAX = 18, LIST_MAX = 6, ROW = 16;
+
+  // ---- font: 3x5 pixel shapes, indexed by character code ----
+  const SHAPES = {
+    '0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,7,1,7],'4':[5,5,7,1,1],'5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,1,1,1],'8':[7,5,7,5,7],'9':[7,5,7,1,7],
+    A:[2,5,7,5,5],B:[6,5,6,5,6],C:[7,4,4,4,7],D:[6,5,5,5,6],E:[7,4,6,4,7],F:[7,4,6,4,4],G:[7,4,5,5,7],H:[5,5,7,5,5],I:[7,2,2,2,7],J:[1,1,1,5,7],K:[5,5,6,5,5],L:[4,4,4,4,7],M:[5,7,7,5,5],
+    N:[6,5,5,5,5],O:[2,5,5,5,2],P:[6,5,6,4,4],Q:[2,5,5,6,3],R:[6,5,6,5,5],S:[3,4,2,1,6],T:[7,2,2,2,2],U:[5,5,5,5,7],V:[5,5,5,5,2],W:[5,5,7,7,5],X:[5,5,2,5,5],Y:[5,5,2,2,2],Z:[7,1,2,4,7],
+    '+':[0,2,7,2,0],'-':[0,0,7,0,0],'.':[0,0,0,0,2],'=':[0,7,0,7,0],'/':[1,1,2,4,4],'%':[5,1,2,4,5],':':[0,2,0,2,0],',':[0,0,0,2,4],'!':[2,2,2,0,2],'?':[6,1,2,0,2],
+    '(':[1,2,2,2,1],')':[4,2,2,2,4],"'":[2,2,0,0,0],'*':[0,5,2,5,0],'#':[5,7,5,7,5],'&':[2,5,2,5,3],'<':[1,2,4,2,1],'>':[4,2,1,2,4],
+    '\x1d':[2,0,7,0,2], '\x1e':[0,5,2,5,0], '\x1f':[3,4,6,4,7]          // ÷  ×  £
+  };
+  const FONT = new Array(640).fill(0);
+  for (const [ch, rows] of Object.entries(SHAPES)) {
+    const codes = [ch.charCodeAt(0)]; if (/[A-Z]/.test(ch)) codes.push(ch.toLowerCase().charCodeAt(0));
+    for (const code of codes) rows.forEach((r, i) => FONT[code * 5 + i] = r);
+  }
+  const toCodes = s => [...s.toUpperCase()].map(ch => ch === '÷' ? 0x1d : ch === '×' ? 0x1e : ch === '£' ? 0x1f : ch === '−' ? 45 : ch.charCodeAt(0) < 128 ? ch.charCodeAt(0) : 63);
+
+  // ---- byte helpers ----
+  const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+  const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
+  const c = n => [0x41, ...sleb(n)], C = n => [0x42, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
+  const I = { add:0x6a, sub:0x6b, mul:0x6c, divs:0x6d, divu:0x6e, remu:0x70, and:0x71, or:0x72, shru:0x76, eqz:0x45, eq:0x46, ne:0x47, lt:0x48, ltu:0x49, gt:0x4a, le:0x4c, ge:0x4e };
+  const L = { add:0x7c, sub:0x7d, mul:0x7e, divs:0x7f, rems:0x81, eqz:0x50, eq:0x51, ne:0x52, lt:0x53, gt:0x55, le:0x57, ge:0x59, wrap:0xa7, ext:0xac };
+  const LD8 = [0x2d, 0, 0], ST8 = [0x3a, 0, 0], LD32 = [0x28, 2, 0], ST32 = [0x36, 2, 0], LD64 = [0x29, 3, 0], ST64 = [0x37, 3, 0];
+  const COPY = [0xfc, 0x0a, 0, 0];
+  const IF = [0x04, 0x40], IF64 = [0x04, 0x7e], ELSE = 0x05, END = 0x0b, RET = 0x0f;
+  const until = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
+  const F = { start:0, draw:1, click:2, key:3, rect:4, glyph:5, text:6, num:7, circle:8, mul:9, div:10, tdigit:11, tpoint:12, boxkey:13, listadd:14, listdraw:15, listclick:16 };
+
+  // ---- built-in library (the same bytes in every program) ----
+  const lib = {};
+  lib.rect = [[2,0x7f]], lib.rect.code = [...g(1), ...st(5),
+    ...until([...g(5), ...g(1), ...g(3), I.add, I.ge], [...g(0), ...st(6),
+      ...until([...g(6), ...g(0), ...g(2), I.add, I.ge], [...g(6), ...c(W), I.ltu, ...g(5), ...c(H), I.ltu, I.and, ...IF,
+        ...g(5), ...c(W), I.mul, ...g(6), I.add, ...g(4), ...ST8, END, ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.glyph = [[3,0x7f]], lib.glyph.code = [...c(0), ...st(5),
+    ...until([...g(5), ...c(5), I.ge], [...c(FONT_AT), ...g(0), ...c(5), I.mul, I.add, ...g(5), I.add, ...LD8, ...st(7), ...c(0), ...st(6),
+      ...until([...g(6), ...c(3), I.ge], [...g(7), ...c(4), ...g(6), I.shru, I.and, ...IF,
+          ...g(1), ...g(6), ...g(4), I.mul, I.add, ...g(2), ...g(5), ...g(4), I.mul, I.add, ...g(4), ...g(4), ...g(3), ...call(F.rect), END,
+        ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.text = [[1,0x7f]], lib.text.code = [...c(0), ...st(6),               // text(addr, len, x, y, colour, scale)
+    ...until([...g(6), ...g(1), I.ge], [...g(0), ...g(6), I.add, ...LD8, ...g(2), ...g(6), ...c(4), ...g(5), I.mul, I.mul, I.add,
+      ...g(3), ...g(4), ...g(5), ...call(F.glyph), ...g(6), ...c(1), I.add, ...st(6)])];
+  const drawCh = codeBytes => [...g(7), ...g(10), I.sub, ...st(7), ...codeBytes, ...g(7), ...g(2), ...g(3), ...g(4), ...call(F.glyph)];
+  lib.num = [[2,0x7f],[1,0x7e],[2,0x7f]], lib.num.code = [               // num(value i64, right x, y, colour, scale, money); locals neg6 x7 ip8(i64) fr9 adv10
+    ...g(4), ...c(4), I.mul, ...st(10),
+    ...g(0), ...C(0), L.lt, ...st(6), ...g(6), ...IF, ...C(0), ...g(0), L.sub, ...st(0), END,
+    ...g(1), ...st(7), ...g(0), ...C(100), L.rems, L.wrap, ...st(9), ...g(0), ...C(100), L.divs, ...st(8),
+    ...g(5), ...IF, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), ...drawCh(c(46)),
+    ELSE, ...g(9), ...IF, ...g(9), ...c(10), I.remu, I.eqz, ...IF, ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]),
+      ELSE, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), END,
+      ...drawCh(c(46)), END, END,
+    0x03, 0x40, ...drawCh([...g(8), ...C(10), L.rems, L.wrap, ...c(48), I.add]), ...g(8), ...C(10), L.divs, ...st(8), ...g(8), L.eqz, I.eqz, 0x0d, 0, END,
+    ...g(5), ...IF, ...drawCh(c(0x1f)), END, ...g(6), ...IF, ...drawCh(c(45)), END];
+  lib.circle = [[2,0x7f]], lib.circle.code = [...c(0), ...g(2), I.sub, ...st(4),   // circle(cx, cy, r, colour)
+    ...until([...g(4), ...g(2), I.gt], [...c(0), ...g(2), I.sub, ...st(5),
+      ...until([...g(5), ...g(2), I.gt], [...g(5), ...g(5), I.mul, ...g(4), ...g(4), I.mul, I.add, ...g(2), ...g(2), I.mul, I.le, ...IF,
+        ...g(0), ...g(5), I.add, ...g(1), ...g(4), I.add, ...c(1), ...c(1), ...g(3), ...call(F.rect), END, ...g(5), ...c(1), I.add, ...st(5)]),
+      ...g(4), ...c(1), I.add, ...st(4)])];
+  const round = (q, half) => [...g(q), ...C(0), L.ge, ...IF64, ...g(q), ...C(half), L.add, ELSE, ...g(q), ...C(half), L.sub, END];
+  lib.mul = [[1,0x7e]], lib.mul.code = [...g(0), ...g(1), L.mul, ...st(2), ...round(2, 50), ...C(100), L.divs];
+  lib.div = [[1,0x7e]], lib.div.code = [...g(1), L.eqz, ...IF, ...C(0), RET, END, ...g(0), ...C(1000), L.mul, ...g(1), L.divs, ...st(2), ...round(2, 5), ...C(10), L.divs];
+  const vAddr = [...c(VARS_AT), ...g(0), ...c(8), I.mul, I.add], pAddr = [...c(PLACES_AT), ...g(0), ...c(4), I.mul, I.add];
+  lib.tdigit = [[1,0x7f]], lib.tdigit.code = [...pAddr, ...LD32, ...st(2),     // tdigit(var, digit)
+    ...g(2), I.eqz, ...IF, ...vAddr, ...vAddr, ...LD64, ...C(10), L.mul, ...g(1), L.ext, ...C(100), L.mul, L.add, ...ST64,
+    ELSE, ...g(2), ...c(1), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, ...C(10), L.mul, L.add, ...ST64, ...pAddr, ...c(2), ...ST32,
+    ELSE, ...g(2), ...c(2), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, L.add, ...ST64, ...pAddr, ...c(3), ...ST32, END, END, END];
+  lib.tpoint = [], lib.tpoint.code = [...pAddr, ...LD32, I.eqz, ...IF, ...pAddr, ...c(1), ...ST32, END];
+  lib.boxkey = [[1,0x7f]], lib.boxkey.code = [...g(0), ...LD8, ...st(2),        // boxkey(box, code)
+    ...g(1), ...c(8), I.eq, ...IF, ...g(2), ...IF, ...g(0), ...g(2), ...c(1), I.sub, ...ST8, END, RET, END,
+    ...g(1), ...c(97), I.ge, ...g(1), ...c(122), I.le, I.and, ...IF, ...g(1), ...c(32), I.sub, ...st(1), END,
+    ...g(1), ...c(32), I.ge, ...g(1), ...c(127), I.lt, I.and, ...g(2), ...c(BOX_MAX), I.lt, I.and, ...IF,
+      ...g(0), ...c(1), I.add, ...g(2), I.add, ...g(1), ...ST8, ...g(0), ...g(2), ...c(1), I.add, ...ST8, END];
+  lib.listadd = [[2,0x7f]], lib.listadd.code = [...g(0), ...LD8, ...st(2),      // listadd(list, box); locals count2 item3
+    ...g(2), ...c(LIST_MAX), I.lt, ...g(1), ...LD8, ...c(0), I.gt, I.and, ...IF,
+      ...g(0), ...c(4), I.add, ...g(2), ...c(20), I.mul, I.add, ...st(3),
+      ...g(3), ...g(1), ...LD8, ...ST8, ...g(3), ...c(1), I.add, ...c(0), ...ST8,
+      ...g(3), ...c(2), I.add, ...g(1), ...c(1), I.add, ...c(BOX_MAX), ...COPY,
+      ...g(0), ...g(2), ...c(1), I.add, ...ST8, ...g(1), ...c(0), ...ST8, END];
+  lib.listdraw = [[4,0x7f]], lib.listdraw.code = [...g(0), ...LD8, ...st(5), ...c(0), ...st(3),   // listdraw(list, y, colour); locals i3 item4 count5 yy6
+    ...until([...g(3), ...g(5), I.ge], [
+      ...g(0), ...c(4), I.add, ...g(3), ...c(20), I.mul, I.add, ...st(4), ...g(1), ...g(3), ...c(ROW), I.mul, I.add, ...st(6),
+      ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(1), ...call(F.rect),
+      ...g(4), ...c(1), I.add, ...LD8, ...IF,
+        ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(3), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...c(8), ...c(2), ...call(F.text),
+        ...c(22), ...g(6), ...c(7), I.add, ...g(4), ...LD8, ...c(8), I.mul, ...c(2), ...c(8), ...call(F.rect),
+      ELSE, ...c(7), ...g(6), ...c(3), I.add, ...c(8), ...c(8), ...c(0), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...g(2), ...c(2), ...call(F.text), END,
+      ...g(3), ...c(1), I.add, ...st(3)])];
+  lib.listclick = [[2,0x7f]], lib.listclick.code = [...g(0), ...LD8, ...st(3),   // listclick(list, index, action); locals item3? count3 item4
+    ...g(1), ...c(0), I.lt, ...g(1), ...g(3), I.ge, I.or, ...IF, RET, END,
+    ...g(0), ...c(4), I.add, ...g(1), ...c(20), I.mul, I.add, ...st(4),
+    ...g(2), ...c(1), I.eq, ...IF, ...g(4), ...c(1), I.add, ...c(1), ...g(4), ...c(1), I.add, ...LD8, I.sub, ...ST8,
+    ELSE, ...g(4), ...g(4), ...c(20), I.add, ...g(3), ...c(1), I.sub, ...g(1), I.sub, ...c(20), I.mul, ...COPY, ...g(0), ...g(3), ...c(1), I.sub, ...ST8, END];
+
+  // ---- read the sentences ----
+  const P = { bg: 14, titles: [], displays: [], box: null, list: null, groups: [], round: false, ink: 1, vars: {}, init: {}, hasOp: false, events: [], colours: { digit: 8, op: 5, '=': 3, C: 9, '.': 8, word: 4 }, named: {} };
+  const colourOf = w => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know (try: ${Object.keys(COLOURS).slice(0, 8).join(', ')}…)`); return COLOURS[w]; };
+  const LABEL = { plus:'+', add:'+', '+':'+', minus:'-', '-':'-', '−':'-', times:'×', '×':'×', x:'×', '*':'×', divide:'÷', '÷':'÷', '/':'÷', equals:'=', '=':'=', c:'C', clear:'C', '.':'.', point:'.', dot:'.' };
+  const OPCODE = { '+':1, '-':2, '×':3, '÷':4 };
+  const quoted = s => [...s.matchAll(/"([^"]*)"|“([^”]*)”/g)].map(m => (m[1] ?? m[2]).toUpperCase());
+  const labelOf = w => { if (/^\d$/.test(w)) return w; if (LABEL[w]) return LABEL[w]; return null; };
+  let ev = null;
+  const raw = text.replace(/[“”]/g, '"');
+  const lines = raw.split('\n').flatMap((ln, n) => ln.split(/(?<=\.)\s+(?=[A-Z])/)
+      .flatMap(p => /^\s*when\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
+      .map(p => { const t = p.trim().toLowerCase(); return { n: n + 1, raw: p.trim(), s: (t.endsWith(':') ? t.slice(0, -1) : t.replace(/[.;!]$/, '')).trim() }; }))
+    .filter(l => l.s && !l.s.startsWith('#'));
+
+  const varIndex = name => { if (!(name in P.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return P.vars[name]; };
+  for (const l of lines) {
+    const s = l.s, q = quoted(l.raw); let m;
+    try {
+      if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { P.bg = colourOf(m[1]); ev = null; continue; }
+      if ((m = s.match(/^write "[^"]*" at the top(?: in (\w+))?$/))) { P.titles.push({ text: q[0], colour: m[1] ? colourOf(m[1]) : 1 }); ev = null; continue; }
+      if ((m = s.match(/^(?:there is )?a display(?: called (\w+))?(?: at the top)?(?:,? labelled "[^"]*",?)? shows (.+?)(?: as (money))? in (\w+)(?: on (\w+))?$/))) {
+        const what = m[2]; const stored = /^(numbers|money)$/.test(what);
+        P.displays.push({ name: m[1] || null, label: /labelled/.test(s) ? q[0] : null, stored, expr: stored ? null : what, money: m[3] === 'money' || what === 'money', ink: colourOf(m[4]), back: m[5] ? colourOf(m[5]) : 0, idx: P.displays.length });
+        ev = null; continue;
+      }
+      if ((m = s.match(/^a text box called (\w+)(?:,? labelled "[^"]*")?$/))) { if (P.box) throw new Error('Only one text box for now'); P.box = { name: m[1], label: /labelled/.test(s) ? q[0] : null }; P.named[m[1]] = 'box'; ev = null; continue; }
+      if ((m = s.match(/^a list called (\w+)$/))) { if (P.list) throw new Error('Only one list for now'); P.list = { name: m[1] }; P.named[m[1]] = 'list'; ev = null; continue; }
+      if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
+        const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
+        const per = m[1] ? (words[m[1]] || parseInt(m[1], 10) || 4) : 4;
+        const labels = []; const src = m[2];
+        for (const tok of src.match(/"[^"]*"|\S+/g)) {
+          if (tok.startsWith('"')) { labels.push(tok.slice(1, -1).toUpperCase()); continue; }
+          const t = tok.replace(/,$/, ''); const lab = labelOf(t);
+          if (lab) labels.push(lab); else if (/^[a-z][a-z%]*$/.test(t)) labels.push(t.toUpperCase()); else if (t) throw new Error(`I can't make a button from “${t}”. Put words in quotes, like "ADD".`);
+        }
+        P.groups.push({ per: Math.min(per, labels.length) || 1, labels }); ev = null; continue;
+      }
+      if (/^the buttons are round$/.test(s)) { P.round = true; continue; }
+      if ((m = s.match(/^the (?:(digit|operation|equals|clear|c|word|point|=|\.) )?buttons? (?:are|is) (\w+)$/))) {
+        const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C', word: 'word', point: '.', '.': '.' }[m[1]] || 'all';
+        const col = colourOf(m[2]); if (k === 'all') for (const key in P.colours) P.colours[key] = col; else P.colours[k] = col; continue;
+      }
+      if ((m = s.match(/^the "([^"]*)" button is (\w+)$/))) { P.colours['w:' + m[1].toUpperCase()] = colourOf(m[2]); continue; }
+      if ((m = s.match(/^the labels are (\w+)$/))) { P.ink = colourOf(m[1]); continue; }
+      if ((m = s.match(/^remember (.+)$/)) && !ev) {
+        for (const part of m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)) {
+          let k;
+          if ((k = part.match(/^an? number called (\w+)(?: starting at (-?[\d.]+))?$/))) { P.vars[k[1]] = Object.keys(P.vars).length; if (k[2]) P.init[k[1]] = Math.round(parseFloat(k[2]) * 100); }
+          else if (/^an? operation$/.test(part)) P.hasOp = true;
+          else throw new Error(`I can remember “a number called …” or “an operation”, not “${part}”`);
+        }
+        continue;
+      }
+      if ((m = s.match(/^when (?:i press|i type|i click on) (.+)$/))) {
+        const what = m[1]; let labels;
+        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
+        else if (/^an? operation$/.test(what)) labels = ['+', '-', '×', '÷'];
+        else if (/^(the )?enter( key)?$/.test(what)) labels = ['ENTER'];
+        else if (q.length) labels = [q[0]];
+        else if (labelOf(what)) labels = [labelOf(what)];
+        else labels = [what.toUpperCase()];
+        ev = { kind: 'press', labels, actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when i (?:click|tap|press) an item in (\w+)$/))) {
+        if (!P.list || P.list.name !== m[1]) throw new Error(`There's no list called “${m[1]}”`);
+        ev = { kind: 'item', labels: [], actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when the app (?:opens|starts)$/))) { ev = { kind: 'start', labels: [], actions: [], line: l }; P.events.push(ev); continue; }
+      if (ev) { ev.actions.push({ s, l }); continue; }
+      throw new Error('I don\'t know this kind of sentence');
+    } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
+  }
+  if (!P.groups.length && !P.displays.length && !P.box) throw new Error('Describe a display, a text box or some buttons to start.');
+
+  // ---- expressions: numbers with 2 decimals (i64, x100) ----
+  function expr(src, ctx) {
+    const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').replace(/([()])/g, ' $1 ').trim().split(/\s+/);
+    let i = 0;
+    const atom = () => {
+      let w = t[i++]; if (w === 'the') w = t[i++];
+      if (w === undefined) throw new Error('the sentence ends too early');
+      if (w === '(') { const e = add(); if (t[i++] !== ')') throw new Error('missing a closing bracket'); return e; }
+      if (/^-?\d+(\.\d+)?$/.test(w)) return C(Math.round(parseFloat(w) * 100));
+      if (w === 'digit') { if (ctx.digit === undefined) throw new Error('“the digit” only makes sense in “When I press a digit”'); return C(ctx.digit * 100); }
+      return [...c(VARS_AT + 8 * varIndex(w)), ...LD64];
+    };
+    const post = () => { let e = atom(); while (t[i] === 'percent' || t[i] === '%') { i++; e = [...e, ...C(100), L.divs]; } return e; };
+    const mul = () => { let e = post(); while (['times', 'over', 'of'].includes(t[i])) { const op = t[i++]; e = [...e, ...post(), ...call(op === 'over' ? F.div : F.mul)]; } return e; };
+    const add = () => { let e = mul(); while (t[i] === 'plus' || t[i] === 'minus') { const op = t[i++]; e = [...e, ...mul(), op === 'plus' ? L.add : L.sub]; } return e; };
+    const out = add();
+    if (i < t.length) throw new Error(`I don't understand “${t.slice(i).join(' ')}”`);
+    return out;
+  }
+  const COND = [['is more than', L.gt], ['is greater than', L.gt], ['is bigger than', L.gt], ['is less than', L.lt], ['is smaller than', L.lt], ['is at least', L.ge], ['is at most', L.le], ['is not', L.ne], ['is', L.eq]];
+  function cond(src, ctx) { for (const [w, op] of COND) { const k = src.indexOf(' ' + w + ' '); if (k > 0) return [...expr(src.slice(0, k), ctx), ...expr(src.slice(k + w.length + 2), ctx), op]; } throw new Error(`I can't read the condition “${src}” (try “x is more than 1”)`); }
+  const setVar = (name, val) => { const v = varIndex(name); return [...c(VARS_AT + 8 * v), ...val, ...ST64, ...c(PLACES_AT + 4 * v), ...c(0), ...ST32]; };
+  const storedDisplays = () => P.displays.filter(d => d.stored);
+
+  function action(s, ctx) {
+    let m;
+    if ((m = s.match(/^if (.+?), (.+)$/))) return [...cond(m[1], ctx), ...IF, ...action(m[2], ctx), END];
+    if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], ctx));
+    if ((m = s.match(/^type the digit into (\w+)$/))) { if (ctx.digit === undefined) throw new Error('“Type the digit” only works in “When I press a digit”'); return [...c(varIndex(m[1])), ...c(ctx.digit), ...call(F.tdigit)]; }
+    if ((m = s.match(/^type a (?:point|dot|decimal point) into (\w+)$/))) return [...c(varIndex(m[1])), ...call(F.tpoint)];
+    if ((m = s.match(/^show (.+?)(?: on (\w+))?$/))) {
+      const ds = storedDisplays(); let d;
+      if (m[2]) { d = ds.find(x => x.name === m[2]); if (!d) throw new Error(`There's no display called “${m[2]}” that shows numbers or money`); }
+      else { if (ds.length !== 1) throw new Error(ds.length ? 'Say which display: “Show x on name.”' : 'Add a display that “shows numbers” first'); d = ds[0]; }
+      return [...c(DISP_AT + 8 * d.idx), ...expr(m[1], ctx), ...ST64];
+    }
+    if ((m = s.match(/^clear (\w+)$/))) {
+      const n = m[1];
+      if (P.named[n] === 'box') return [...c(BOX_AT), ...c(0), ...ST8];
+      if (P.named[n] === 'list') return [...c(LIST_AT), ...c(0), ...ST8];
+      return setVar(n, C(0));
+    }
+    if (/^remember the operation$/.test(s)) { if (!(ctx.label in OPCODE)) throw new Error('“Remember the operation” only works for + − × ÷ buttons'); return [...c(OP_AT), ...c(OPCODE[ctx.label]), ...ST32]; }
+    if ((m = s.match(/^apply the operation to (\w+) and (\w+),? and put the answer in (\w+)$/))) {
+      if (!P.hasOp) throw new Error('Add “Remember … an operation.” first');
+      const a = [...c(VARS_AT + 8 * varIndex(m[1])), ...LD64], b = [...c(VARS_AT + 8 * varIndex(m[2])), ...LD64];
+      const when = (code, val) => [...c(OP_AT), ...LD32, ...c(code), I.eq, ...IF, ...setVar(m[3], val), END];
+      return [...when(1, [...a, ...b, L.add]), ...when(2, [...a, ...b, L.sub]), ...when(3, [...a, ...b, ...call(F.mul)]), ...when(4, [...a, ...b, ...call(F.div)])];
+    }
+    if ((m = s.match(/^add (\w+) to (\w+)$/))) { if (P.named[m[1]] !== 'box' || P.named[m[2]] !== 'list') throw new Error('“Add” needs a text box and a list, like “Add task to tasks.”'); return [...c(LIST_AT), ...c(BOX_AT), ...call(F.listadd)]; }
+    if (/^(tick|untick|check) it$/.test(s)) { if (!ctx.item) throw new Error('“Tick it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(1), ...call(F.listclick)]; }
+    if (/^(remove|delete) it$/.test(s)) { if (!ctx.item) throw new Error('“Remove it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(2), ...call(F.listclick)]; }
+    throw new Error('I don\'t know this action');
+  }
+  const runActions = (e, ctx) => e.actions.flatMap(a => { try { return action(a.s, ctx); } catch (err) { throw new Error(`Line ${a.l.n}, “${a.l.raw}”: ${err.message}`); } });
+
+  // ---- layout, top to bottom ----
+  let y = 6; const layout = { titles: [], displays: [], buttons: [] };
+  for (const t of P.titles) { const sc = t.text.length * 8 <= 152 ? 2 : 1; layout.titles.push({ ...t, sc, x: Math.max(4, (W - t.text.length * 4 * sc) >> 1), y }); y += sc * 5 + 6; }
+  const big = P.displays.length === 1 && !P.box && !P.list;
+  for (const d of P.displays) {
+    const sc = big ? 3 : 2, h = big ? 30 : 20; let ly = null;
+    if (d.label) { ly = y; y += 8; }
+    layout.displays.push({ ...d, ly, y, h, sc }); y += h + 6;
+  }
+  if (P.box) { if (P.box.label) { P.box.ly = y; y += 8; } P.box.y = y; y += 22; }
+  if (P.list) { P.list.y = y; y += LIST_MAX * ROW + 4; }
+  const rows = P.groups.reduce((n, gp) => n + Math.ceil(gp.labels.length / gp.per), 0);
+  if (rows) {
+    const bh = Math.min(40, Math.floor((H - 4 - y - (rows - 1) * 4) / rows));
+    if (bh < 14) throw new Error('There are too many things to fit on the screen. Try fewer buttons or displays.');
+    for (const gp of P.groups) {
+      const bw = Math.floor((152 - (gp.per - 1) * 4) / gp.per);
+      gp.labels.forEach((lab, i) => { if (i && i % gp.per === 0) y += bh + 4; layout.buttons.push({ lab, x: 4 + (i % gp.per) * (bw + 4), y, w: bw, h: bh }); });
+      y += bh + 4;
+    }
+  }
+  const kindOf = lab => /^\d$/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab === '=' ? '=' : lab === 'C' ? 'C' : lab === '.' ? '.' : 'word';
+  for (const e of P.events) if (e.kind === 'press') for (const lab of e.labels) if (e.labels.length === 1 && lab !== 'ENTER' && !layout.buttons.some(b => b.lab === lab)) throw new Error(`Line ${e.line.n}: there's no ${lab} button to press. Add it to a “Buttons:” list.`);
+
+  // ---- strings go into memory once ----
+  const strs = []; let strPtr = STR_AT; const strAt = s => { const codes = toCodes(s); const at = strPtr; strs.push({ at, codes }); strPtr += codes.length; return { at, len: codes.length }; };
+  const textCall = (s, x, yy, col, sc) => { const r = strAt(s); return [...c(r.at), ...c(r.len), ...c(x), ...c(yy), ...c(col), ...c(sc), ...call(F.text)]; };
+
+  // ---- the program's own parts ----
+  const parts = [];
+  const startBody = [...Object.entries(P.init).flatMap(([n, v]) => [...c(VARS_AT + 8 * P.vars[n]), ...C(v), ...ST64]), ...P.events.filter(e => e.kind === 'start').flatMap(e => runActions(e, {}))];
+  parts.push({ label: 'Start: set starting values', bytes: startBody });
+  const draw = [...c(0), ...c(0), ...c(W), ...c(H), ...c(P.bg), ...call(F.rect)];
+  parts.push({ label: 'Paint the screen', bytes: draw.slice() });
+  for (const t of layout.titles) { const b = textCall(t.text, t.x, t.y, t.colour, t.sc); draw.push(...b); parts.push({ label: `Write “${t.text}”`, bytes: b }); }
+  for (const d of layout.displays) {
+    const b = [];
+    if (d.label) b.push(...textCall(d.label, 6, d.ly, 1, 1));
+    b.push(...c(4), ...c(d.y), ...c(152), ...c(d.h), ...c(d.back), ...call(F.rect));
+    b.push(...(d.stored ? [...c(DISP_AT + 8 * d.idx), ...LD64] : expr(d.expr, {})), ...c(150), ...c(d.y + ((d.h - 5 * d.sc) >> 1)), ...c(d.ink), ...c(d.sc), ...c(d.money ? 1 : 0), ...call(F.num));
+    draw.push(...b); parts.push({ label: `Display${d.label ? ' “' + d.label + '”' : ''}${d.stored ? '' : ': ' + d.expr}`, bytes: b });
+  }
+  if (P.box) {
+    const b = [];
+    if (P.box.label) b.push(...textCall(P.box.label, 6, P.box.ly, 1, 1));
+    b.push(...c(4), ...c(P.box.y), ...c(152), ...c(18), ...c(0), ...call(F.rect), ...c(BOX_AT + 1), ...c(BOX_AT), ...LD8, ...c(8), ...c(P.box.y + 4), ...c(1), ...c(2), ...call(F.text),
+      ...c(BOX_AT), ...LD8, ...c(8), I.mul, ...c(8), I.add, ...c(P.box.y + 3), ...c(2), ...c(12), ...c(10), ...call(F.rect));
+    draw.push(...b); parts.push({ label: `Text box “${P.box.name}”`, bytes: b });
+  }
+  if (P.list) { const b = [...c(LIST_AT), ...c(P.list.y), ...c(1), ...call(F.listdraw)]; draw.push(...b); parts.push({ label: `List “${P.list.name}”`, bytes: b }); }
+  for (const bt of layout.buttons) {
+    const k = kindOf(bt.lab), col = P.colours['w:' + bt.lab] ?? P.colours[k] ?? 8, b = [];
+    if (P.round) { const r = (Math.min(bt.w, bt.h) >> 1) - 1; b.push(...c(bt.x + (bt.w >> 1)), ...c(bt.y + (bt.h >> 1)), ...c(r), ...c(col), ...call(F.circle)); }
+    else b.push(...c(bt.x), ...c(bt.y), ...c(bt.w), ...c(bt.h), ...c(col), ...call(F.rect));
+    const len = toCodes(bt.lab).length, sc = len * 8 <= bt.w - 4 && !(P.round && len * 8 > Math.min(bt.w, bt.h) - 6) ? 2 : 1;
+    b.push(...textCall(bt.lab, bt.x + ((bt.w - len * 4 * sc) >> 1), bt.y + ((bt.h - 5 * sc) >> 1), P.ink, sc));
+    draw.push(...b); parts.push({ label: `Button ${bt.lab}`, bytes: b });
+  }
+  const pressActs = lab => P.events.filter(e => e.kind === 'press' && e.labels.includes(lab)).flatMap(e => runActions(e, { label: lab, digit: /^\d$/.test(lab) ? +lab : undefined }));
+  const click = [];
+  for (const bt of layout.buttons) {
+    const acts = pressActs(bt.lab); if (!acts.length) continue;
+    const b = [...g(0), ...c(bt.x), I.ge, ...g(0), ...c(bt.x + bt.w), I.lt, I.and, ...g(1), ...c(bt.y), I.ge, I.and, ...g(1), ...c(bt.y + bt.h), I.lt, I.and, ...IF, ...acts, RET, END];
+    click.push(...b); parts.push({ label: `When ${bt.lab} is pressed`, bytes: b });
+  }
+  const itemEv = P.events.filter(e => e.kind === 'item');
+  if (itemEv.length) {
+    const b = [...g(1), ...c(P.list.y), I.ge, ...g(1), ...c(P.list.y + LIST_MAX * ROW), I.lt, I.and, ...IF,
+      ...g(1), ...c(P.list.y), I.sub, ...c(ROW), I.divs, ...st(2), ...itemEv.flatMap(e => runActions(e, { item: true })), RET, END];
+    click.push(...b); parts.push({ label: `When an item in “${P.list.name}” is clicked`, bytes: b });
+  }
+  // keyboard: Enter, typing into the text box, and keys that match buttons
+  const KEYS = { '+':[43], '-':[45], '×':[42,120], '÷':[47], '=':[61], '.':[46,44], 'C':[27,99] };
+  const key = [];
+  const enterActs = pressActs('ENTER');
+  if (enterActs.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...enterActs, RET, END);
+  else if (layout.buttons.some(b => b.lab === '=')) { const a = pressActs('='); if (a.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...a, RET, END); }
+  if (P.box) key.push(...c(BOX_AT), ...g(0), ...call(F.boxkey), RET);
+  else for (const bt of layout.buttons) {
+    const codes = /^\d$/.test(bt.lab) ? [48 + +bt.lab] : KEYS[bt.lab]; if (!codes) continue;
+    const a = pressActs(bt.lab); if (!a.length) continue;
+    for (const kc of codes) key.push(...g(0), ...c(kc), I.eq, ...IF, ...a, RET, END);
+  }
+  if (key.length) parts.push({ label: 'Keyboard: Enter, typing and button shortcuts', bytes: key });
+
+  // ---- assemble the module ----
+  const sec = (id, b) => [id, ...uleb(b.length), ...b];
+  const nm = s => [...uleb(s.length), ...[...s].map(ch => ch.charCodeAt(0))];
+  const T = (params, results = []) => [0x60, params.length, ...params, results.length, ...results];
+  const i32 = 0x7f, i64 = 0x7e;
+  const types = [T([]), T([i32, i32]), T([i32]), T([i32, i32, i32, i32, i32]), T([i32, i32, i32, i32, i32, i32]), T([i64, i32, i32, i32, i32, i32]), T([i32, i32, i32, i32]), T([i64, i64], [i64]), T([i32, i32, i32])];
+  const fnTypes = [0, 0, 1, 2, 3, 3, 4, 5, 6, 7, 7, 1, 2, 1, 1, 8, 8];
+  const body = (locals, code) => { const decl = [locals.length, ...locals.flatMap(([n, t]) => [n, t])]; const b = [...decl, ...code, END]; return [...uleb(b.length), ...b]; };
+  const bodies = [body([], startBody), body([], draw), body([[1, i32]], click), body([], key),
+    body(lib.rect, lib.rect.code), body(lib.glyph, lib.glyph.code), body(lib.text, lib.text.code), body(lib.num, lib.num.code), body(lib.circle, lib.circle.code),
+    body(lib.mul, lib.mul.code), body(lib.div, lib.div.code), body(lib.tdigit, lib.tdigit.code), body(lib.tpoint, lib.tpoint.code), body(lib.boxkey, lib.boxkey.code),
+    body(lib.listadd, lib.listadd.code), body(lib.listdraw, lib.listdraw.code), body(lib.listclick, lib.listclick.code)];
+  const segs = [{ at: FONT_AT, codes: FONT }, ...strs];
+  const bytes = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...sec(1, [types.length, ...types.flat()]), ...sec(3, [fnTypes.length, ...fnTypes]), ...sec(5, [1, 0, 1]),
+    ...sec(7, [5, ...nm('memory'), 2, 0, ...nm('start'), 0, 0, ...nm('draw'), 0, 1, ...nm('click'), 0, 2, ...nm('key'), 0, 3]),
+    ...sec(10, [bodies.length, ...bodies.flat()]),
+    ...sec(11, [segs.length, ...segs.flatMap(s => [0, ...c(s.at), END, ...uleb(s.codes.length), ...s.codes])])]);
+  const libBytes = bodies.slice(4).reduce((n, b) => n + b.length, 0) + FONT.length;
+  return { bytes, parts, layout, list: P.list, box: P.box, width: W, height: H, sizes: { total: bytes.length, yours: bodies.slice(0, 4).reduce((n, b) => n + b.length, 0), library: libBytes }, memory: { VARS_AT, DISP_AT, BOX_AT, LIST_AT }, vars: P.vars };
+}
+if (typeof module !== 'undefined') module.exports = { compileSE2 };

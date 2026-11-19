@@ -1,0 +1,16 @@
+# Celsius to Fahrenheit
+The screen is blue.
+Write "C TO F" at the top in white.
+Remember a number called celsius.
+A display, labelled "CELSIUS", shows celsius in white on black.
+A display, labelled "FAHRENHEIT", shows celsius times 9 divided by 5 plus 32 in yellow on black.
+Buttons, four per row: 7 8 9 C 4 5 6 − 1 2 3 0.
+The buttons are sky.
+The C buttons are salmon.
+
+When I press a digit:
+  Type the digit into celsius.
+When I press −:
+  Celsius becomes 0 minus celsius.
+When I press C:
+  Clear celsius.

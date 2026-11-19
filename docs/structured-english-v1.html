@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structured English</title>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a quiet lab bench; a language being born.
+   IDEA: a specimen plate: the English program on the left, the working machine on the right, its bytes laid out beneath.
+   PICTURE: the 128x128 machine screen running the calculator, large and clickable.
+   COLOUR and TYPE: white, ink, carmine for English, prussian for bytes; Literata + JetBrains Mono.
+   LAYOUT: title; editor | machine; then bytes by part and the language reference; stacks under 860px. */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
+.band{padding:clamp(22px,3.5vw,44px) max(4vw,16px)}.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
+h2{font-size:22px;margin:0 0 12px;font-weight:600}
+.lede{color:var(--mute);max-width:72ch;margin:0}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;margin-top:22px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.box{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+textarea{display:block;width:100%;min-height:520px;border:0;resize:vertical;padding:16px;background:transparent;color:var(--car);font:16px/1.65 Literata,Georgia,serif;tab-size:2}
+.screen{padding:14px}
+canvas{display:block;width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:6px;cursor:pointer;background:#000}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.stat{font:600 14px 'JetBrains Mono',monospace;color:var(--pru)}
+.hint{font:14px 'JetBrains Mono',monospace;color:var(--mute);margin-top:8px;min-height:21px}
+.msg{margin-top:10px;color:var(--car);font-size:15px}
+button{font:inherit;font-size:15px;min-height:44px;border-radius:8px;padding:0 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--car);color:var(--car)}
+:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+.meter{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 4px;background:var(--line)}
+.meter span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:0}
+.rows .row{display:grid;grid-template-columns:minmax(0,0.75fr) minmax(0,1.5fr);gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.rows .l{color:var(--car);font-size:15px}.rows .lib .l{color:var(--mute);font-style:italic}
+.hx{font:12.5px/1.6 'JetBrains Mono',monospace;color:var(--pru);overflow-wrap:anywhere;border-left:2px solid var(--car);padding-left:12px;max-height:7.2em;overflow:auto}
+.rows .lib .hx{border-color:var(--line);color:var(--mute)}
+@media(max-width:600px){.rows .row{grid-template-columns:minmax(0,1fr)}}
+.ref{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.ref div{border-top:2px solid var(--car);padding-top:10px}
+.ref h3{font-size:16px;margin:0 0 6px;font-weight:600}
+.ref p{margin:0 0 6px;font-size:15px;color:var(--mute)}.ref code{font-family:Literata,serif;color:var(--car);font-size:15px}
+</style></head><body>
+<div class="band"><div class="wrap">
+<h1>Structured English v0.1: a calculator with no code</h1>
+<p class="lede">The calculator below is described only in English sentences with fixed patterns, so each one has exactly one meaning. A rule compiler turns them straight into a binary for a 128 × 128 machine. The binary draws every pixel, digit and button itself.</p>
+<div class="grid">
+ <div class="box"><textarea id="src" aria-label="Structured English program" spellcheck="false"></textarea></div>
+ <div>
+  <div class="box screen">
+   <canvas id="cv" width="128" height="128" aria-label="Machine screen, 128 by 128 pixels"></canvas>
+   <div class="hint" id="hint">Press the buttons on the screen.</div>
+   <div class="bar"><span class="stat" id="size"></span><button id="reset">Restart</button></div>
+   <div class="msg" id="msg" aria-live="polite"></div>
+  </div>
+  <div style="margin-top:16px">
+   <div class="meter" id="meter"></div>
+   <div class="legend"><span><i style="background:var(--car)"></i>From your sentences</span><span><i style="background:var(--pru)"></i>Built-in library + font</span><span><i style="background:var(--mute)"></i>Packaging</span></div>
+  </div>
+ </div>
+</div>
+</div></div>
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+ <h2>Where the bytes came from</h2>
+ <div class="rows" id="rows"></div>
+</div></div>
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+ <h2>The language so far: every sentence pattern</h2>
+ <div class="ref">
+  <div><h3>Screen</h3><p><code>The screen is charcoal.</code></p><p><code>A display at the top shows numbers in lime.</code> Optional: <code>on black</code>.</p></div>
+  <div><h3>Buttons</h3><p><code>Buttons, four per row: 7 8 9 ÷ 4 5 6 × …</code></p><p>Labels: digits, + − × ÷ =, C. Words like plus, times and equals work too.</p><p><code>The operation buttons are orange.</code> Also digit, equals and C buttons, or <code>The buttons are …</code></p></div>
+  <div><h3>Memory</h3><p><code>Remember a number called entry, a number called total, and an operation.</code></p></div>
+  <div><h3>Events</h3><p><code>When I press a digit:</code> · <code>When I press an operation:</code> · <code>When I press equals:</code> · <code>When I press C:</code> · <code>When I press 7:</code></p></div>
+  <div><h3>Actions</h3><p><code>Entry becomes entry times 10 plus the digit.</code> (plus, minus, times, divided by)</p><p><code>Show entry.</code> · <code>Remember the operation.</code></p><p><code>Apply the operation to total and entry, and put the answer in entry.</code></p></div>
+  <div><h3>Rules</h3><p>Whole numbers only for now. Dividing by zero gives 0. Lines starting with # are notes. Anything outside these patterns gets a plain-English error naming the line.</p></div>
+ </div>
+</div></div>
+<script>
+{
+// Structured English v0.1 -> WebAssembly binary for a 128x128 Tiny Machine.
+// Memory map: screen 0..16383 (1 byte per pixel) | operation 19992 | shown number 19996 | numbers 20000+ | font 60000.
+function compileSE(text) {
+  const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
+  const LABEL = { '0':'0','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9',
+    '+':'+', plus:'+', add:'+', '-':'-', '−':'-', minus:'-', subtract:'-', 'x':'x', '×':'x', '*':'x', times:'x', multiply:'x',
+    '/':'/', '÷':'/', divide:'/', '=':'=', equals:'=', equal:'=', c:'C', clear:'C' };
+  const GLYPH = { '0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'+':10,'-':11,'x':12,'/':13,'=':14,'C':15 };
+  const OPCODE = { '+':1, '-':2, 'x':3, '/':4 };
+  const FONT = [7,5,5,5,7, 2,6,2,2,7, 7,1,7,4,7, 7,1,7,1,7, 5,5,7,1,1, 7,4,7,1,7, 7,4,7,5,7, 7,1,1,1,1, 7,5,7,5,7, 7,5,7,1,7,
+                0,2,7,2,0, 0,0,7,0,0, 0,5,2,5,0, 1,1,2,4,4, 0,7,0,7,0, 7,4,4,4,7];
+  const FONT_AT = 60000, OP_AT = 19992, SHOWN_AT = 19996, VARS_AT = 20000;
+
+  const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+  const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
+  const c = n => [0x41, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
+  const ADD = 0x6a, SUB = 0x6b, MUL = 0x6c, DIVS = 0x6d, DIVU = 0x6e, REMU = 0x70, AND = 0x71, SHR = 0x76, EQ = 0x46, LT = 0x48, GE = 0x4e, EQZ = 0x45;
+  const LOAD8 = [0x2d, 0, 0], STORE8 = [0x3a, 0, 0], LOAD = [0x28, 2, 0], STORE = [0x36, 2, 0];
+  const IF = [0x04, 0x40], END = 0x0b;
+  const loopUntil = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
+  const RECT = 2, GLY = 3, NUM = 4;
+
+  // ---- the built-in library: three helpers every program gets (fixed bytes, written once) ----
+  const libRect = [0x01, 2, 0x7f, ...g(1), ...st(5),                      // rect(x, y, w, h, colour)
+    ...loopUntil([...g(5), ...g(1), ...g(3), ADD, GE], [...g(0), ...st(6),
+      ...loopUntil([...g(6), ...g(0), ...g(2), ADD, GE], [...g(5), ...c(128), MUL, ...g(6), ADD, ...g(4), ...STORE8, ...g(6), ...c(1), ADD, ...st(6)]),
+      ...g(5), ...c(1), ADD, ...st(5)]), END];
+  const libGlyph = [0x01, 3, 0x7f, ...c(0), ...st(5),                     // glyph(character, x, y, colour, scale)
+    ...loopUntil([...g(5), ...c(5), GE], [...c(FONT_AT), ...g(0), ...c(5), MUL, ADD, ...g(5), ADD, ...LOAD8, ...st(7), ...c(0), ...st(6),
+      ...loopUntil([...g(6), ...c(3), GE], [...g(7), ...c(4), ...g(6), SHR, AND, ...IF,
+          ...g(1), ...g(6), ...g(4), MUL, ADD, ...g(2), ...g(5), ...g(4), MUL, ADD, ...g(4), ...g(4), ...g(3), ...call(RECT), END,
+        ...g(6), ...c(1), ADD, ...st(6)]),
+      ...g(5), ...c(1), ADD, ...st(5)]), END];
+  const libNumber = [0x01, 3, 0x7f,                                       // number(value, right edge, y, colour, scale)
+    ...g(0), ...c(0), LT, ...st(5), ...g(5), ...IF, ...c(0), ...g(0), SUB, ...st(0), END, ...g(1), ...st(6),
+    0x03, 0x40, ...g(0), ...c(10), REMU, ...st(7), ...g(6), ...c(4), ...g(4), MUL, SUB, ...st(6),
+      ...g(7), ...g(6), ...g(2), ...g(3), ...g(4), ...call(GLY), ...g(0), ...c(10), DIVU, ...st(0), ...g(0), 0x0d, 0, END,
+    ...g(5), ...IF, ...g(6), ...c(4), ...g(4), MUL, SUB, ...st(6), ...c(11), ...g(6), ...g(2), ...g(3), ...g(4), ...call(GLY), END, END];
+
+  // ---- read the sentences ----
+  const prog = { bg: 14, display: null, buttons: [], perRow: 4, vars: {}, hasOp: false, events: [], colours: { digit: 8, op: 5, '=': 3, C: 9 }, ink: 1 };
+  const trace = [];
+  let ev = null;
+  const colourOf = (w, line) => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know`); return COLOURS[w]; };
+  const varAddr = name => { if (!(name in prog.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return VARS_AT + 4 * prog.vars[name]; };
+
+  function expr(src, digit) {
+    const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').trim().split(/\s+/);
+    let i = 0;
+    const atom = () => {
+      let w = t[i++];
+      if (w === 'the') w = t[i++];
+      if (w === undefined) throw new Error('the sentence ends too early');
+      if (/^-?\d+$/.test(w)) return c(parseInt(w, 10));
+      if (w === 'digit' || w === 'number' && digit !== undefined) { if (digit === undefined) throw new Error('“the digit” only makes sense in “When I press a digit”'); return c(digit); }
+      return [...c(varAddr(w)), ...LOAD];
+    };
+    const level = (ops, next) => () => { let out = next(); while (t[i] in ops) { const op = ops[t[i++]]; out = [...out, ...next(), op]; } return out; };
+    const mul = level({ times: MUL, over: DIVS }, atom), add = level({ plus: ADD, minus: SUB }, mul);
+    const out = add();
+    if (i < t.length) throw new Error(`I don't understand “${t.slice(i).join(' ')}”`);
+    return out;
+  }
+  const setVar = (name, valueBytes) => [...c(varAddr(name)), ...valueBytes, ...STORE];
+
+  function action(s, label) {
+    const digit = /^\d$/.test(label) ? +label : undefined;
+    let m;
+    if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], digit));
+    if ((m = s.match(/^show (.+?)(?: on the display)?$/))) return [...c(SHOWN_AT), ...expr(m[1], digit), ...STORE];
+    if (/^remember the operation$/.test(s)) { if (!(label in OPCODE)) throw new Error('“Remember the operation” only works for + − × ÷ buttons'); return [...c(OP_AT), ...c(OPCODE[label]), ...STORE]; }
+    if ((m = s.match(/^apply the operation to (\w+) and (\w+),? and put the answer in (\w+)$/))) {
+      if (!prog.hasOp) throw new Error('Add “Remember an operation.” first');
+      const [a, b] = [[...c(varAddr(m[1])), ...LOAD], [...c(varAddr(m[2])), ...LOAD]];
+      const when = (code, val) => [...c(OP_AT), ...LOAD, ...c(code), EQ, ...IF, ...setVar(m[3], val), END];
+      return [...when(1, [...a, ...b, ADD]), ...when(2, [...a, ...b, SUB]), ...when(3, [...a, ...b, MUL]),
+              ...c(OP_AT), ...LOAD, ...c(4), EQ, ...IF, ...b, EQZ, ...IF, ...setVar(m[3], c(0)), 0x05, ...setVar(m[3], [...a, ...b, DIVS]), END, END];
+    }
+    throw new Error('I don\'t know this action');
+  }
+
+  const lines = text.split('\n').flatMap((raw, n) => raw.split(/(?<=\.)\s+/)
+      .flatMap(p => /^\s*when\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
+      .map(p => ({ n: n + 1, raw: p.trim(), s: p.trim().toLowerCase().replace(/[.:;!]+$/, '').trim() }))).filter(l => l.s && !l.s.startsWith('#'));
+  for (const l of lines) {
+    const s = l.s; let m;
+    try {
+      if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { prog.bg = colourOf(m[1]); ev = null; trace.push([l.raw, 'screen colour']); continue; }
+      if ((m = s.match(/^(?:there is )?a display at the top(?: shows numbers in (\w+))?(?: on (\w+))?$/))) { prog.display = { ink: m[1] ? colourOf(m[1]) : 1, bg: m[2] ? colourOf(m[2]) : 0 }; ev = null; trace.push([l.raw, 'display']); continue; }
+      if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
+        const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
+        if (m[1]) prog.perRow = words[m[1]] || parseInt(m[1], 10) || 4;
+        for (const w of m[2].split(/[\s,]+/).filter(Boolean)) { const lab = LABEL[w]; if (!lab) throw new Error(`“${w}” isn't a button label I can draw (digits, + − × ÷ =, C)`); prog.buttons.push(lab); }
+        ev = null; trace.push([l.raw, `${prog.buttons.length} buttons`]); continue;
+      }
+      if ((m = s.match(/^the (?:(digit|operation|equals|clear|=|c) )?buttons? (?:are|is) (\w+)$/))) {
+        const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C' }[m[1]] || 'all';
+        const col = colourOf(m[2]); if (k === 'all') prog.colours = { digit: col, op: col, '=': col, C: col }; else prog.colours[k] = col;
+        ev = null; trace.push([l.raw, 'button colour']); continue;
+      }
+      if ((m = s.match(/^the labels are (\w+)$/))) { prog.ink = colourOf(m[1]); trace.push([l.raw, 'label colour']); continue; }
+      if ((m = s.match(/^remember (.+)$/)) && !ev) {
+        for (const part of m[1].split(/\s*(?:,|\band\b)\s*/).filter(Boolean)) {
+          let k;
+          if ((k = part.match(/^an? number called (\w+)$/))) prog.vars[k[1]] = Object.keys(prog.vars).length;
+          else if (/^an? operation$/.test(part)) prog.hasOp = true;
+          else throw new Error(`I can remember “a number called …” or “an operation”, not “${part}”`);
+        }
+        trace.push([l.raw, 'memory']); continue;
+      }
+      if ((m = s.match(/^when i press (.+)$/))) {
+        const what = m[1];
+        let labels;
+        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
+        else if (/^an? operation$/.test(what)) labels = ['+', '-', 'x', '/'];
+        else if (LABEL[what]) labels = [LABEL[what]];
+        else throw new Error(`I don't know a button called “${what}”`);
+        ev = { labels, actions: [] }; prog.events.push(ev); trace.push([l.raw, 'event']); continue;
+      }
+      if (ev) { action(s, ev.labels[0]); ev.actions.push(s); trace.push([l.raw, 'action']); continue; }
+      throw new Error('I don\'t know this kind of sentence');
+    } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
+  }
+  if (!prog.buttons.length && !prog.display) throw new Error('Describe a display or some buttons to start.');
+
+  // ---- layout ----
+  const top = prog.display ? 38 : 4, cols = Math.min(prog.perRow, Math.max(1, prog.buttons.length)), rows = Math.ceil(prog.buttons.length / cols) || 1;
+  const bw = Math.floor((120 - (cols - 1) * 4) / cols), bh = Math.min(40, Math.floor((124 - top - (rows - 1) * 4) / rows));
+  const layout = prog.buttons.map((lab, i) => ({ lab, x: 4 + (i % cols) * (bw + 4), y: top + Math.floor(i / cols) * (bh + 4), w: bw, h: bh }));
+  const kind = lab => /\d/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab;
+  for (const e of prog.events) for (const lab of e.labels) if (!prog.buttons.includes(lab) && e.labels.length === 1) throw new Error(`There's no ${lab} button to press. Add it to the buttons list.`);
+
+  // ---- assemble the program's own parts ----
+  const drawParts = [{ label: 'Paint the screen', bytes: [...c(0), ...c(0), ...c(128), ...c(128), ...c(prog.bg), ...call(RECT)] }];
+  if (prog.display) drawParts.push({ label: 'Draw the display and the number it shows', bytes: [...c(4), ...c(4), ...c(120), ...c(28), ...c(prog.display.bg), ...call(RECT), ...c(SHOWN_AT), ...LOAD, ...c(120), ...c(10), ...c(prog.display.ink), ...c(3), ...call(NUM)] });
+  for (const b of layout) drawParts.push({ label: `Draw button ${b.lab === 'x' ? '×' : b.lab === '/' ? '÷' : b.lab}`, bytes: [...c(b.x), ...c(b.y), ...c(b.w), ...c(b.h), ...c(prog.colours[kind(b.lab)] ?? 8), ...call(RECT),
+    ...c(GLYPH[b.lab]), ...c(b.x + ((b.w - 6) >> 1)), ...c(b.y + ((b.h - 10) >> 1)), ...c(prog.ink), ...c(2), ...call(GLY)] });
+  const clickParts = [];
+  for (const b of layout) {
+    const acts = prog.events.filter(e => e.labels.includes(b.lab)).flatMap(e => e.actions.flatMap(a => action(a, b.lab)));
+    if (!acts.length) continue;
+    clickParts.push({ label: `If the click is on ${b.lab === 'x' ? '×' : b.lab === '/' ? '÷' : b.lab}, do its actions`, bytes: [...g(0), ...c(b.x), GE, ...g(0), ...c(b.x + b.w), LT, AND, ...g(1), ...c(b.y), GE, AND, ...g(1), ...c(b.y + b.h), LT, AND, ...IF, ...acts, 0x0f, END] });
+  }
+  const drawBody = [0x00, ...drawParts.flatMap(p => p.bytes), END], clickBody = [0x00, ...clickParts.flatMap(p => p.bytes), END];
+  const sec = (id, b) => [id, ...uleb(b.length), ...b], nm = s => [...uleb(s.length), ...[...s].map(ch => ch.charCodeAt(0))];
+  const bodies = [drawBody, clickBody, libRect, libGlyph, libNumber];
+  const head = [0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...sec(1, [3, 0x60, 0, 0, 0x60, 2, 0x7f, 0x7f, 0, 0x60, 5, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0]),
+    ...sec(3, [5, 0, 1, 2, 2, 2]), ...sec(5, [1, 0, 1]),
+    ...sec(7, [3, ...nm('memory'), 2, 0, ...nm('draw'), 0, 0, ...nm('click'), 0, 1])];
+  const code = sec(10, [5, ...bodies.flatMap(b => [...uleb(b.length), ...b])]);
+  const data = sec(11, [1, 0, ...c(FONT_AT), END, ...uleb(FONT.length), ...FONT]);
+  const bytes = new Uint8Array([...head, ...code, ...data]);
+  const libBytes = [libRect, libGlyph, libNumber].reduce((n, b) => n + b.length, 0) + FONT.length;
+  return { bytes, trace, layout, drawParts, clickParts, libBytes, sizes: { total: bytes.length, yours: drawParts.concat(clickParts).reduce((n, p) => n + p.bytes.length, 0) } };
+}
+
+
+const CALC = "# A calculator, in Structured English v0.1\nThe screen is charcoal.\nA display at the top shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 = +.\nThe operation buttons are orange.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Entry becomes entry times 10 plus the digit.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Entry becomes 0.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Entry becomes 0.\n  Total becomes 0.\n  Show entry.\n";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, '0')).join(' ');
+const PAL = ['#000000','#ffffff','#e03131','#2f9e44','#1c7ed6','#f59f00','#ae3ec9','#0ca678','#868e96','#ff8787','#8ce99a','#74c0fc','#ffe066','#e599f7','#343a40','#f783ac'];
+const rgb = PAL.map(h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16)));
+const cv = $('cv'), ctx = cv.getContext('2d'), img = ctx.createImageData(128, 128);
+let prog = null, last = null;
+function paint() { if (!prog) return; prog.e.draw(); for (let i = 0; i < 16384; i++) { const [r, g, b] = rgb[prog.mem[i] & 15]; img.data[i*4] = r; img.data[i*4+1] = g; img.data[i*4+2] = b; img.data[i*4+3] = 255; } ctx.putImageData(img, 0, 0); }
+async function boot(bytes) { const { instance } = await WebAssembly.instantiate(bytes); prog = { e: instance.exports, mem: new Uint8Array(instance.exports.memory.buffer) }; paint(); }
+async function build() {
+  const text = $('src').value; try { localStorage.setItem('se-src', text); } catch (e) {}
+  let r; try { r = compileSE(text); } catch (e) { $('msg').textContent = e.message; return; }
+  $('msg').textContent = ''; last = r;
+  const pack = r.sizes.total - r.sizes.yours - r.libBytes;
+  $('size').textContent = `${r.sizes.total.toLocaleString()} bytes`;
+  $('meter').innerHTML = `<span style="width:${r.sizes.yours / r.sizes.total * 100}%;background:var(--car)"></span><span style="width:${r.libBytes / r.sizes.total * 100}%;background:var(--pru)"></span><span style="width:${pack / r.sizes.total * 100}%;background:var(--mute)"></span>`;
+  $('rows').innerHTML = [...r.drawParts.map(p => ({ ...p, label: 'Draw: ' + p.label })), ...r.clickParts.map(p => ({ ...p, label: 'Click: ' + p.label }))]
+    .map(p => `<div class="row"><div class="l">${esc(p.label)} <span style="color:var(--mute);font-size:13px">(${p.bytes.length} bytes)</span></div><div class="hx">${hex(p.bytes)}</div></div>`).join('')
+    + `<div class="row lib"><div class="l">Built-in library: draw a rectangle, draw a character, draw a number, plus a 3×5 font (${r.libBytes} bytes, the same in every program)</div><div class="hx">Included automatically, like the alphabet: your sentences use it but never have to describe it.</div></div>`;
+  try { await boot(r.bytes); } catch (e) { $('msg').textContent = 'The machine rejected the bytes: ' + e.message; }
+}
+let t; $('src').addEventListener('input', () => { clearTimeout(t); t = setTimeout(build, 300); });
+$('reset').addEventListener('click', () => { if (last) boot(last.bytes); });
+cv.addEventListener('click', ev => {
+  if (!prog) return; const r = cv.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / r.width * 128), y = Math.floor((ev.clientY - r.top) / r.height * 128);
+  try { prog.e.click(x, y); } catch (e) {} paint();
+  $('hint').textContent = `The machine received x = ${x}, y = ${y}.`;
+});
+let saved = null; try { saved = localStorage.getItem('se-src'); } catch (e) {}
+$('src').value = saved || CALC; build();
+}
+</script></body></html>

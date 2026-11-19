@@ -1,0 +1,23 @@
+# A tip calculator
+The screen is charcoal.
+Write "TIP CALCULATOR" at the top in white.
+Remember a number called bill, and a number called rate starting at 15.
+A display, labelled "BILL", shows bill as money in lime.
+A display, labelled "TIP", shows rate percent of bill as money in yellow.
+A display, labelled "TOTAL", shows bill plus rate percent of bill as money in sky.
+Buttons, three per row: "10%" "15%" "20%".
+Buttons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.
+The word buttons are purple.
+
+When I press a digit:
+  Type the digit into bill.
+When I press .:
+  Type a point into bill.
+When I press C:
+  Clear bill.
+When I press "10%":
+  Rate becomes 10.
+When I press "15%":
+  Rate becomes 15.
+When I press "20%":
+  Rate becomes 20.

@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Structured English</title>
+<title>Structured English v0.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* VOICE: a quiet lab bench; a language being born.
-   IDEA: a specimen plate: the English program on the left, the working machine on the right, its bytes laid out beneath.
-   PICTURE: the 128x128 machine screen running the calculator, large and clickable.
+/* VOICE: a quiet lab bench; small apps written in plain sentences.
+   IDEA: a specimen plate: the English program beside the tiny phone it became.
+   PICTURE: the 160x240 phone screen running the chosen app, large and clickable.
    COLOUR and TYPE: white, ink, carmine for English, prussian for bytes; Literata + JetBrains Mono.
-   LAYOUT: title; editor | machine; then bytes by part and the language reference; stacks under 860px. */
+   LAYOUT: title, app picker, then editor | phone, then where the bytes came from and the language reference; stacks under 860px. */
 :root{color-scheme:light dark;--bg:light-dark(#fff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
@@ -15,258 +15,450 @@
 h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
 h2{font-size:22px;margin:0 0 12px;font-weight:600}
 .lede{color:var(--mute);max-width:72ch;margin:0}
-.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;margin-top:22px;align-items:start}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+button{font:inherit;font-size:15px;min-height:44px;border-radius:22px;padding:0 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--car);color:var(--car)}
+button[aria-pressed=true]{background:var(--pru);border-color:var(--pru);color:#fff}
+:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,0.9fr);gap:28px;margin-top:20px;align-items:start}
 @media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
 .box{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
-textarea{display:block;width:100%;min-height:520px;border:0;resize:vertical;padding:16px;background:transparent;color:var(--car);font:16px/1.65 Literata,Georgia,serif;tab-size:2}
-.screen{padding:14px}
-canvas{display:block;width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:6px;cursor:pointer;background:#000}
-.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+textarea{display:block;width:100%;min-height:560px;border:0;resize:vertical;padding:16px;background:transparent;color:var(--car);font:15.5px/1.65 Literata,Georgia,serif}
+.phone{max-width:340px;margin:0 auto;padding:14px 12px 16px;border-radius:30px;background:#16181d;border:1px solid var(--line)}
+canvas{display:block;width:100%;aspect-ratio:2/3;image-rendering:pixelated;border-radius:16px;cursor:pointer;background:#000;outline:none}
+canvas:focus-visible{outline:3px solid var(--car);outline-offset:3px}
+.under{max-width:340px;margin:10px auto 0}
+.under input{width:100%;min-height:44px;font:16px Literata,serif;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .stat{font:600 14px 'JetBrains Mono',monospace;color:var(--pru)}
-.hint{font:14px 'JetBrains Mono',monospace;color:var(--mute);margin-top:8px;min-height:21px}
 .msg{margin-top:10px;color:var(--car);font-size:15px}
-button{font:inherit;font-size:15px;min-height:44px;border-radius:8px;padding:0 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
-button:hover{border-color:var(--car);color:var(--car)}
-:focus-visible{outline:3px solid var(--car);outline-offset:2px}
-.meter{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 4px;background:var(--line)}
+.meter{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:8px 0 4px;background:var(--line)}
 .meter span{display:block;height:100%}
-.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;color:var(--mute)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:0}
-.rows .row{display:grid;grid-template-columns:minmax(0,0.75fr) minmax(0,1.5fr);gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
-.rows .l{color:var(--car);font-size:15px}.rows .lib .l{color:var(--mute);font-style:italic}
-.hx{font:12.5px/1.6 'JetBrains Mono',monospace;color:var(--pru);overflow-wrap:anywhere;border-left:2px solid var(--car);padding-left:12px;max-height:7.2em;overflow:auto}
-.rows .lib .hx{border-color:var(--line);color:var(--mute)}
-@media(max-width:600px){.rows .row{grid-template-columns:minmax(0,1fr)}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.parts .p{display:grid;grid-template-columns:minmax(0,0.8fr) minmax(0,1.4fr);gap:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.parts .l{color:var(--car);font-size:15px}
+.hx{font:12px/1.6 'JetBrains Mono',monospace;color:var(--pru);overflow-wrap:anywhere;border-left:2px solid var(--car);padding-left:12px;max-height:5em;overflow:auto}
+@media(max-width:600px){.parts .p{grid-template-columns:minmax(0,1fr)}}
 .ref{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
 .ref div{border-top:2px solid var(--car);padding-top:10px}
 .ref h3{font-size:16px;margin:0 0 6px;font-weight:600}
 .ref p{margin:0 0 6px;font-size:15px;color:var(--mute)}.ref code{font-family:Literata,serif;color:var(--car);font-size:15px}
 </style></head><body>
 <div class="band"><div class="wrap">
-<h1>Structured English v0.1: a calculator with no code</h1>
-<p class="lede">The calculator below is described only in English sentences with fixed patterns, so each one has exactly one meaning. A rule compiler turns them straight into a binary for a 128 × 128 machine. The binary draws every pixel, digit and button itself.</p>
+<h1>Structured English v0.2: six small apps, no code</h1>
+<p class="lede">Each app below is written only in English sentences. A rule compiler turns them straight into a WebAssembly binary for a 160 × 240 “tiny phone”, which draws every pixel, letter and number itself. Pick an app, use it, then change the sentences and watch it rebuild.</p>
+<div class="chips" id="chips"></div>
 <div class="grid">
  <div class="box"><textarea id="src" aria-label="Structured English program" spellcheck="false"></textarea></div>
  <div>
-  <div class="box screen">
-   <canvas id="cv" width="128" height="128" aria-label="Machine screen, 128 by 128 pixels"></canvas>
-   <div class="hint" id="hint">Press the buttons on the screen.</div>
-   <div class="bar"><span class="stat" id="size"></span><button id="reset">Restart</button></div>
-   <div class="msg" id="msg" aria-live="polite"></div>
-  </div>
-  <div style="margin-top:16px">
+  <div class="phone"><canvas id="cv" width="160" height="240" tabindex="0" aria-label="Tiny phone screen. Click buttons; when focused, you can type."></canvas></div>
+  <div class="under">
+   <input id="kb" placeholder="Type here (sends keys to the app)" aria-label="Type keys to send to the app" autocomplete="off">
+   <div class="row"><span class="stat" id="size"></span><button id="reset">Restart app</button></div>
    <div class="meter" id="meter"></div>
-   <div class="legend"><span><i style="background:var(--car)"></i>From your sentences</span><span><i style="background:var(--pru)"></i>Built-in library + font</span><span><i style="background:var(--mute)"></i>Packaging</span></div>
+   <div class="legend"><span><i style="background:var(--car)"></i>from your sentences</span><span><i style="background:var(--pru)"></i>built-in library + font</span></div>
+   <div class="msg" id="msg" aria-live="polite"></div>
   </div>
  </div>
 </div>
 </div></div>
 <div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
  <h2>Where the bytes came from</h2>
- <div class="rows" id="rows"></div>
+ <div class="parts" id="parts"></div>
 </div></div>
 <div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
- <h2>The language so far: every sentence pattern</h2>
+ <h2>Every sentence pattern in v0.2</h2>
  <div class="ref">
-  <div><h3>Screen</h3><p><code>The screen is charcoal.</code></p><p><code>A display at the top shows numbers in lime.</code> Optional: <code>on black</code>.</p></div>
-  <div><h3>Buttons</h3><p><code>Buttons, four per row: 7 8 9 ÷ 4 5 6 × …</code></p><p>Labels: digits, + − × ÷ =, C. Words like plus, times and equals work too.</p><p><code>The operation buttons are orange.</code> Also digit, equals and C buttons, or <code>The buttons are …</code></p></div>
-  <div><h3>Memory</h3><p><code>Remember a number called entry, a number called total, and an operation.</code></p></div>
-  <div><h3>Events</h3><p><code>When I press a digit:</code> · <code>When I press an operation:</code> · <code>When I press equals:</code> · <code>When I press C:</code> · <code>When I press 7:</code></p></div>
-  <div><h3>Actions</h3><p><code>Entry becomes entry times 10 plus the digit.</code> (plus, minus, times, divided by)</p><p><code>Show entry.</code> · <code>Remember the operation.</code></p><p><code>Apply the operation to total and entry, and put the answer in entry.</code></p></div>
-  <div><h3>Rules</h3><p>Whole numbers only for now. Dividing by zero gives 0. Lines starting with # are notes. Anything outside these patterns gets a plain-English error naming the line.</p></div>
+  <div><h3>Screen and text</h3><p><code>The screen is charcoal.</code></p><p><code>Write "TIP CALCULATOR" at the top in white.</code></p></div>
+  <div><h3>Displays</h3><p><code>A display shows numbers in lime.</code> (set it with <code>Show …</code>)</p><p><code>A display, labelled "TOTAL", shows bill plus tip as money in sky on black.</code> (updates itself)</p></div>
+  <div><h3>Buttons</h3><p><code>Buttons, four per row: 7 8 9 ÷ … . = C</code> Words go in quotes: <code>"ADD" "10%"</code></p><p><code>The buttons are round.</code> · <code>The operation buttons are pink.</code> · <code>The "RESET" button is grey.</code> Also digit, word, equals and C buttons.</p></div>
+  <div><h3>Memory</h3><p><code>Remember a number called bill, a number called rate starting at 15, and an operation.</code></p><p><code>A text box called task, labelled "NEW TASK".</code> · <code>A list called tasks.</code></p></div>
+  <div><h3>Events</h3><p><code>When I press a digit:</code> · <code>an operation</code> · <code>equals</code> · <code>C</code> · <code>.</code> · <code>"ADD"</code> · <code>enter</code></p><p><code>When I click an item in tasks:</code> · <code>When the app opens:</code></p></div>
+  <div><h3>Actions</h3><p><code>Type the digit into bill.</code> · <code>Type a point into bill.</code> · <code>Clear bill.</code></p><p><code>Rate becomes 20.</code> · <code>Show entry.</code> · <code>Add task to tasks.</code> · <code>Tick it.</code> · <code>Remove it.</code></p><p><code>If people is more than 1, people becomes people minus 1.</code></p></div>
+  <div><h3>Maths</h3><p>plus, minus, times, divided by, percent, “15 percent of bill”, brackets, decimals like 0.5. Two decimal places; dividing by zero gives 0.</p></div>
  </div>
 </div></div>
 <script>
 {
-// Structured English v0.1 -> WebAssembly binary for a 128x128 Tiny Machine.
-// Memory map: screen 0..16383 (1 byte per pixel) | operation 19992 | shown number 19996 | numbers 20000+ | font 60000.
-function compileSE(text) {
+// Structured English v0.2 -> WebAssembly binary for a 160x240 "Tiny Phone" machine.
+// The machine provides: memory (screen = 1 byte per pixel, 16 colours), and calls start(), draw(), click(x, y), key(code).
+// Numbers are stored with 2 decimal places (x100), so money and decimals work.
+function compileSE2(text) {
+  const W = 160, H = 240;
   const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
-  const LABEL = { '0':'0','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9',
-    '+':'+', plus:'+', add:'+', '-':'-', '−':'-', minus:'-', subtract:'-', 'x':'x', '×':'x', '*':'x', times:'x', multiply:'x',
-    '/':'/', '÷':'/', divide:'/', '=':'=', equals:'=', equal:'=', c:'C', clear:'C' };
-  const GLYPH = { '0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'+':10,'-':11,'x':12,'/':13,'=':14,'C':15 };
-  const OPCODE = { '+':1, '-':2, 'x':3, '/':4 };
-  const FONT = [7,5,5,5,7, 2,6,2,2,7, 7,1,7,4,7, 7,1,7,1,7, 5,5,7,1,1, 7,4,7,1,7, 7,4,7,5,7, 7,1,1,1,1, 7,5,7,5,7, 7,5,7,1,7,
-                0,2,7,2,0, 0,0,7,0,0, 0,5,2,5,0, 1,1,2,4,4, 0,7,0,7,0, 7,4,4,4,7];
-  const FONT_AT = 60000, OP_AT = 19992, SHOWN_AT = 19996, VARS_AT = 20000;
+  const OP_AT = 39000, DISP_AT = 39100, PLACES_AT = 39500, VARS_AT = 40000, BOX_AT = 41000, LIST_AT = 42000, STR_AT = 50000, FONT_AT = 60000;
+  const BOX_MAX = 18, LIST_MAX = 6, ROW = 16;
 
+  // ---- font: 3x5 pixel shapes, indexed by character code ----
+  const SHAPES = {
+    '0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,7,1,7],'4':[5,5,7,1,1],'5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,1,1,1],'8':[7,5,7,5,7],'9':[7,5,7,1,7],
+    A:[2,5,7,5,5],B:[6,5,6,5,6],C:[7,4,4,4,7],D:[6,5,5,5,6],E:[7,4,6,4,7],F:[7,4,6,4,4],G:[7,4,5,5,7],H:[5,5,7,5,5],I:[7,2,2,2,7],J:[1,1,1,5,7],K:[5,5,6,5,5],L:[4,4,4,4,7],M:[5,7,7,5,5],
+    N:[6,5,5,5,5],O:[2,5,5,5,2],P:[6,5,6,4,4],Q:[2,5,5,6,3],R:[6,5,6,5,5],S:[3,4,2,1,6],T:[7,2,2,2,2],U:[5,5,5,5,7],V:[5,5,5,5,2],W:[5,5,7,7,5],X:[5,5,2,5,5],Y:[5,5,2,2,2],Z:[7,1,2,4,7],
+    '+':[0,2,7,2,0],'-':[0,0,7,0,0],'.':[0,0,0,0,2],'=':[0,7,0,7,0],'/':[1,1,2,4,4],'%':[5,1,2,4,5],':':[0,2,0,2,0],',':[0,0,0,2,4],'!':[2,2,2,0,2],'?':[6,1,2,0,2],
+    '(':[1,2,2,2,1],')':[4,2,2,2,4],"'":[2,2,0,0,0],'*':[0,5,2,5,0],'#':[5,7,5,7,5],'&':[2,5,2,5,3],'<':[1,2,4,2,1],'>':[4,2,1,2,4],
+    '\x1d':[2,0,7,0,2], '\x1e':[0,5,2,5,0], '\x1f':[3,4,6,4,7]          // ÷  ×  £
+  };
+  const FONT = new Array(640).fill(0);
+  for (const [ch, rows] of Object.entries(SHAPES)) {
+    const codes = [ch.charCodeAt(0)]; if (/[A-Z]/.test(ch)) codes.push(ch.toLowerCase().charCodeAt(0));
+    for (const code of codes) rows.forEach((r, i) => FONT[code * 5 + i] = r);
+  }
+  const toCodes = s => [...s.toUpperCase()].map(ch => ch === '÷' ? 0x1d : ch === '×' ? 0x1e : ch === '£' ? 0x1f : ch === '−' ? 45 : ch.charCodeAt(0) < 128 ? ch.charCodeAt(0) : 63);
+
+  // ---- byte helpers ----
   const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
   const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
-  const c = n => [0x41, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
-  const ADD = 0x6a, SUB = 0x6b, MUL = 0x6c, DIVS = 0x6d, DIVU = 0x6e, REMU = 0x70, AND = 0x71, SHR = 0x76, EQ = 0x46, LT = 0x48, GE = 0x4e, EQZ = 0x45;
-  const LOAD8 = [0x2d, 0, 0], STORE8 = [0x3a, 0, 0], LOAD = [0x28, 2, 0], STORE = [0x36, 2, 0];
-  const IF = [0x04, 0x40], END = 0x0b;
-  const loopUntil = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
-  const RECT = 2, GLY = 3, NUM = 4;
+  const c = n => [0x41, ...sleb(n)], C = n => [0x42, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
+  const I = { add:0x6a, sub:0x6b, mul:0x6c, divs:0x6d, divu:0x6e, remu:0x70, and:0x71, or:0x72, shru:0x76, eqz:0x45, eq:0x46, ne:0x47, lt:0x48, ltu:0x49, gt:0x4a, le:0x4c, ge:0x4e };
+  const L = { add:0x7c, sub:0x7d, mul:0x7e, divs:0x7f, rems:0x81, eqz:0x50, eq:0x51, ne:0x52, lt:0x53, gt:0x55, le:0x57, ge:0x59, wrap:0xa7, ext:0xac };
+  const LD8 = [0x2d, 0, 0], ST8 = [0x3a, 0, 0], LD32 = [0x28, 2, 0], ST32 = [0x36, 2, 0], LD64 = [0x29, 3, 0], ST64 = [0x37, 3, 0];
+  const COPY = [0xfc, 0x0a, 0, 0];
+  const IF = [0x04, 0x40], IF64 = [0x04, 0x7e], ELSE = 0x05, END = 0x0b, RET = 0x0f;
+  const until = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
+  const F = { start:0, draw:1, click:2, key:3, rect:4, glyph:5, text:6, num:7, circle:8, mul:9, div:10, tdigit:11, tpoint:12, boxkey:13, listadd:14, listdraw:15, listclick:16 };
 
-  // ---- the built-in library: three helpers every program gets (fixed bytes, written once) ----
-  const libRect = [0x01, 2, 0x7f, ...g(1), ...st(5),                      // rect(x, y, w, h, colour)
-    ...loopUntil([...g(5), ...g(1), ...g(3), ADD, GE], [...g(0), ...st(6),
-      ...loopUntil([...g(6), ...g(0), ...g(2), ADD, GE], [...g(5), ...c(128), MUL, ...g(6), ADD, ...g(4), ...STORE8, ...g(6), ...c(1), ADD, ...st(6)]),
-      ...g(5), ...c(1), ADD, ...st(5)]), END];
-  const libGlyph = [0x01, 3, 0x7f, ...c(0), ...st(5),                     // glyph(character, x, y, colour, scale)
-    ...loopUntil([...g(5), ...c(5), GE], [...c(FONT_AT), ...g(0), ...c(5), MUL, ADD, ...g(5), ADD, ...LOAD8, ...st(7), ...c(0), ...st(6),
-      ...loopUntil([...g(6), ...c(3), GE], [...g(7), ...c(4), ...g(6), SHR, AND, ...IF,
-          ...g(1), ...g(6), ...g(4), MUL, ADD, ...g(2), ...g(5), ...g(4), MUL, ADD, ...g(4), ...g(4), ...g(3), ...call(RECT), END,
-        ...g(6), ...c(1), ADD, ...st(6)]),
-      ...g(5), ...c(1), ADD, ...st(5)]), END];
-  const libNumber = [0x01, 3, 0x7f,                                       // number(value, right edge, y, colour, scale)
-    ...g(0), ...c(0), LT, ...st(5), ...g(5), ...IF, ...c(0), ...g(0), SUB, ...st(0), END, ...g(1), ...st(6),
-    0x03, 0x40, ...g(0), ...c(10), REMU, ...st(7), ...g(6), ...c(4), ...g(4), MUL, SUB, ...st(6),
-      ...g(7), ...g(6), ...g(2), ...g(3), ...g(4), ...call(GLY), ...g(0), ...c(10), DIVU, ...st(0), ...g(0), 0x0d, 0, END,
-    ...g(5), ...IF, ...g(6), ...c(4), ...g(4), MUL, SUB, ...st(6), ...c(11), ...g(6), ...g(2), ...g(3), ...g(4), ...call(GLY), END, END];
+  // ---- built-in library (the same bytes in every program) ----
+  const lib = {};
+  lib.rect = [[2,0x7f]], lib.rect.code = [...g(1), ...st(5),
+    ...until([...g(5), ...g(1), ...g(3), I.add, I.ge], [...g(0), ...st(6),
+      ...until([...g(6), ...g(0), ...g(2), I.add, I.ge], [...g(6), ...c(W), I.ltu, ...g(5), ...c(H), I.ltu, I.and, ...IF,
+        ...g(5), ...c(W), I.mul, ...g(6), I.add, ...g(4), ...ST8, END, ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.glyph = [[3,0x7f]], lib.glyph.code = [...c(0), ...st(5),
+    ...until([...g(5), ...c(5), I.ge], [...c(FONT_AT), ...g(0), ...c(5), I.mul, I.add, ...g(5), I.add, ...LD8, ...st(7), ...c(0), ...st(6),
+      ...until([...g(6), ...c(3), I.ge], [...g(7), ...c(4), ...g(6), I.shru, I.and, ...IF,
+          ...g(1), ...g(6), ...g(4), I.mul, I.add, ...g(2), ...g(5), ...g(4), I.mul, I.add, ...g(4), ...g(4), ...g(3), ...call(F.rect), END,
+        ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.text = [[1,0x7f]], lib.text.code = [...c(0), ...st(6),               // text(addr, len, x, y, colour, scale)
+    ...until([...g(6), ...g(1), I.ge], [...g(0), ...g(6), I.add, ...LD8, ...g(2), ...g(6), ...c(4), ...g(5), I.mul, I.mul, I.add,
+      ...g(3), ...g(4), ...g(5), ...call(F.glyph), ...g(6), ...c(1), I.add, ...st(6)])];
+  const drawCh = codeBytes => [...g(7), ...g(10), I.sub, ...st(7), ...codeBytes, ...g(7), ...g(2), ...g(3), ...g(4), ...call(F.glyph)];
+  lib.num = [[2,0x7f],[1,0x7e],[2,0x7f]], lib.num.code = [               // num(value i64, right x, y, colour, scale, money); locals neg6 x7 ip8(i64) fr9 adv10
+    ...g(4), ...c(4), I.mul, ...st(10),
+    ...g(0), ...C(0), L.lt, ...st(6), ...g(6), ...IF, ...C(0), ...g(0), L.sub, ...st(0), END,
+    ...g(1), ...st(7), ...g(0), ...C(100), L.rems, L.wrap, ...st(9), ...g(0), ...C(100), L.divs, ...st(8),
+    ...g(5), ...IF, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), ...drawCh(c(46)),
+    ELSE, ...g(9), ...IF, ...g(9), ...c(10), I.remu, I.eqz, ...IF, ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]),
+      ELSE, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), END,
+      ...drawCh(c(46)), END, END,
+    0x03, 0x40, ...drawCh([...g(8), ...C(10), L.rems, L.wrap, ...c(48), I.add]), ...g(8), ...C(10), L.divs, ...st(8), ...g(8), L.eqz, I.eqz, 0x0d, 0, END,
+    ...g(5), ...IF, ...drawCh(c(0x1f)), END, ...g(6), ...IF, ...drawCh(c(45)), END];
+  lib.circle = [[2,0x7f]], lib.circle.code = [...c(0), ...g(2), I.sub, ...st(4),   // circle(cx, cy, r, colour)
+    ...until([...g(4), ...g(2), I.gt], [...c(0), ...g(2), I.sub, ...st(5),
+      ...until([...g(5), ...g(2), I.gt], [...g(5), ...g(5), I.mul, ...g(4), ...g(4), I.mul, I.add, ...g(2), ...g(2), I.mul, I.le, ...IF,
+        ...g(0), ...g(5), I.add, ...g(1), ...g(4), I.add, ...c(1), ...c(1), ...g(3), ...call(F.rect), END, ...g(5), ...c(1), I.add, ...st(5)]),
+      ...g(4), ...c(1), I.add, ...st(4)])];
+  const round = (q, half) => [...g(q), ...C(0), L.ge, ...IF64, ...g(q), ...C(half), L.add, ELSE, ...g(q), ...C(half), L.sub, END];
+  lib.mul = [[1,0x7e]], lib.mul.code = [...g(0), ...g(1), L.mul, ...st(2), ...round(2, 50), ...C(100), L.divs];
+  lib.div = [[1,0x7e]], lib.div.code = [...g(1), L.eqz, ...IF, ...C(0), RET, END, ...g(0), ...C(1000), L.mul, ...g(1), L.divs, ...st(2), ...round(2, 5), ...C(10), L.divs];
+  const vAddr = [...c(VARS_AT), ...g(0), ...c(8), I.mul, I.add], pAddr = [...c(PLACES_AT), ...g(0), ...c(4), I.mul, I.add];
+  lib.tdigit = [[1,0x7f]], lib.tdigit.code = [...pAddr, ...LD32, ...st(2),     // tdigit(var, digit)
+    ...g(2), I.eqz, ...IF, ...vAddr, ...vAddr, ...LD64, ...C(10), L.mul, ...g(1), L.ext, ...C(100), L.mul, L.add, ...ST64,
+    ELSE, ...g(2), ...c(1), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, ...C(10), L.mul, L.add, ...ST64, ...pAddr, ...c(2), ...ST32,
+    ELSE, ...g(2), ...c(2), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, L.add, ...ST64, ...pAddr, ...c(3), ...ST32, END, END, END];
+  lib.tpoint = [], lib.tpoint.code = [...pAddr, ...LD32, I.eqz, ...IF, ...pAddr, ...c(1), ...ST32, END];
+  lib.boxkey = [[1,0x7f]], lib.boxkey.code = [...g(0), ...LD8, ...st(2),        // boxkey(box, code)
+    ...g(1), ...c(8), I.eq, ...IF, ...g(2), ...IF, ...g(0), ...g(2), ...c(1), I.sub, ...ST8, END, RET, END,
+    ...g(1), ...c(97), I.ge, ...g(1), ...c(122), I.le, I.and, ...IF, ...g(1), ...c(32), I.sub, ...st(1), END,
+    ...g(1), ...c(32), I.ge, ...g(1), ...c(127), I.lt, I.and, ...g(2), ...c(BOX_MAX), I.lt, I.and, ...IF,
+      ...g(0), ...c(1), I.add, ...g(2), I.add, ...g(1), ...ST8, ...g(0), ...g(2), ...c(1), I.add, ...ST8, END];
+  lib.listadd = [[2,0x7f]], lib.listadd.code = [...g(0), ...LD8, ...st(2),      // listadd(list, box); locals count2 item3
+    ...g(2), ...c(LIST_MAX), I.lt, ...g(1), ...LD8, ...c(0), I.gt, I.and, ...IF,
+      ...g(0), ...c(4), I.add, ...g(2), ...c(20), I.mul, I.add, ...st(3),
+      ...g(3), ...g(1), ...LD8, ...ST8, ...g(3), ...c(1), I.add, ...c(0), ...ST8,
+      ...g(3), ...c(2), I.add, ...g(1), ...c(1), I.add, ...c(BOX_MAX), ...COPY,
+      ...g(0), ...g(2), ...c(1), I.add, ...ST8, ...g(1), ...c(0), ...ST8, END];
+  lib.listdraw = [[4,0x7f]], lib.listdraw.code = [...g(0), ...LD8, ...st(5), ...c(0), ...st(3),   // listdraw(list, y, colour); locals i3 item4 count5 yy6
+    ...until([...g(3), ...g(5), I.ge], [
+      ...g(0), ...c(4), I.add, ...g(3), ...c(20), I.mul, I.add, ...st(4), ...g(1), ...g(3), ...c(ROW), I.mul, I.add, ...st(6),
+      ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(1), ...call(F.rect),
+      ...g(4), ...c(1), I.add, ...LD8, ...IF,
+        ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(3), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...c(8), ...c(2), ...call(F.text),
+        ...c(22), ...g(6), ...c(7), I.add, ...g(4), ...LD8, ...c(8), I.mul, ...c(2), ...c(8), ...call(F.rect),
+      ELSE, ...c(7), ...g(6), ...c(3), I.add, ...c(8), ...c(8), ...c(0), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...g(2), ...c(2), ...call(F.text), END,
+      ...g(3), ...c(1), I.add, ...st(3)])];
+  lib.listclick = [[2,0x7f]], lib.listclick.code = [...g(0), ...LD8, ...st(3),   // listclick(list, index, action); locals item3? count3 item4
+    ...g(1), ...c(0), I.lt, ...g(1), ...g(3), I.ge, I.or, ...IF, RET, END,
+    ...g(0), ...c(4), I.add, ...g(1), ...c(20), I.mul, I.add, ...st(4),
+    ...g(2), ...c(1), I.eq, ...IF, ...g(4), ...c(1), I.add, ...c(1), ...g(4), ...c(1), I.add, ...LD8, I.sub, ...ST8,
+    ELSE, ...g(4), ...g(4), ...c(20), I.add, ...g(3), ...c(1), I.sub, ...g(1), I.sub, ...c(20), I.mul, ...COPY, ...g(0), ...g(3), ...c(1), I.sub, ...ST8, END];
 
   // ---- read the sentences ----
-  const prog = { bg: 14, display: null, buttons: [], perRow: 4, vars: {}, hasOp: false, events: [], colours: { digit: 8, op: 5, '=': 3, C: 9 }, ink: 1 };
-  const trace = [];
+  const P = { bg: 14, titles: [], displays: [], box: null, list: null, groups: [], round: false, ink: 1, vars: {}, init: {}, hasOp: false, events: [], colours: { digit: 8, op: 5, '=': 3, C: 9, '.': 8, word: 4 }, named: {} };
+  const colourOf = w => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know (try: ${Object.keys(COLOURS).slice(0, 8).join(', ')}…)`); return COLOURS[w]; };
+  const LABEL = { plus:'+', add:'+', '+':'+', minus:'-', '-':'-', '−':'-', times:'×', '×':'×', x:'×', '*':'×', divide:'÷', '÷':'÷', '/':'÷', equals:'=', '=':'=', c:'C', clear:'C', '.':'.', point:'.', dot:'.' };
+  const OPCODE = { '+':1, '-':2, '×':3, '÷':4 };
+  const quoted = s => [...s.matchAll(/"([^"]*)"|“([^”]*)”/g)].map(m => (m[1] ?? m[2]).toUpperCase());
+  const labelOf = w => { if (/^\d$/.test(w)) return w; if (LABEL[w]) return LABEL[w]; return null; };
   let ev = null;
-  const colourOf = (w, line) => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know`); return COLOURS[w]; };
-  const varAddr = name => { if (!(name in prog.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return VARS_AT + 4 * prog.vars[name]; };
+  const raw = text.replace(/[“”]/g, '"');
+  const lines = raw.split('\n').flatMap((ln, n) => ln.split(/(?<=\.)\s+(?=[A-Z])/)
+      .flatMap(p => /^\s*when\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
+      .map(p => { const t = p.trim().toLowerCase(); return { n: n + 1, raw: p.trim(), s: (t.endsWith(':') ? t.slice(0, -1) : t.replace(/[.;!]$/, '')).trim() }; }))
+    .filter(l => l.s && !l.s.startsWith('#'));
 
-  function expr(src, digit) {
-    const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').trim().split(/\s+/);
+  const varIndex = name => { if (!(name in P.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return P.vars[name]; };
+  for (const l of lines) {
+    const s = l.s, q = quoted(l.raw); let m;
+    try {
+      if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { P.bg = colourOf(m[1]); ev = null; continue; }
+      if ((m = s.match(/^write "[^"]*" at the top(?: in (\w+))?$/))) { P.titles.push({ text: q[0], colour: m[1] ? colourOf(m[1]) : 1 }); ev = null; continue; }
+      if ((m = s.match(/^(?:there is )?a display(?: called (\w+))?(?: at the top)?(?:,? labelled "[^"]*",?)? shows (.+?)(?: as (money))? in (\w+)(?: on (\w+))?$/))) {
+        const what = m[2]; const stored = /^(numbers|money)$/.test(what);
+        P.displays.push({ name: m[1] || null, label: /labelled/.test(s) ? q[0] : null, stored, expr: stored ? null : what, money: m[3] === 'money' || what === 'money', ink: colourOf(m[4]), back: m[5] ? colourOf(m[5]) : 0, idx: P.displays.length });
+        ev = null; continue;
+      }
+      if ((m = s.match(/^a text box called (\w+)(?:,? labelled "[^"]*")?$/))) { if (P.box) throw new Error('Only one text box for now'); P.box = { name: m[1], label: /labelled/.test(s) ? q[0] : null }; P.named[m[1]] = 'box'; ev = null; continue; }
+      if ((m = s.match(/^a list called (\w+)$/))) { if (P.list) throw new Error('Only one list for now'); P.list = { name: m[1] }; P.named[m[1]] = 'list'; ev = null; continue; }
+      if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
+        const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
+        const per = m[1] ? (words[m[1]] || parseInt(m[1], 10) || 4) : 4;
+        const labels = []; const src = m[2];
+        for (const tok of src.match(/"[^"]*"|\S+/g)) {
+          if (tok.startsWith('"')) { labels.push(tok.slice(1, -1).toUpperCase()); continue; }
+          const t = tok.replace(/,$/, ''); const lab = labelOf(t);
+          if (lab) labels.push(lab); else if (/^[a-z][a-z%]*$/.test(t)) labels.push(t.toUpperCase()); else if (t) throw new Error(`I can't make a button from “${t}”. Put words in quotes, like "ADD".`);
+        }
+        P.groups.push({ per: Math.min(per, labels.length) || 1, labels }); ev = null; continue;
+      }
+      if (/^the buttons are round$/.test(s)) { P.round = true; continue; }
+      if ((m = s.match(/^the (?:(digit|operation|equals|clear|c|word|point|=|\.) )?buttons? (?:are|is) (\w+)$/))) {
+        const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C', word: 'word', point: '.', '.': '.' }[m[1]] || 'all';
+        const col = colourOf(m[2]); if (k === 'all') for (const key in P.colours) P.colours[key] = col; else P.colours[k] = col; continue;
+      }
+      if ((m = s.match(/^the "([^"]*)" button is (\w+)$/))) { P.colours['w:' + m[1].toUpperCase()] = colourOf(m[2]); continue; }
+      if ((m = s.match(/^the labels are (\w+)$/))) { P.ink = colourOf(m[1]); continue; }
+      if ((m = s.match(/^remember (.+)$/)) && !ev) {
+        for (const part of m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)) {
+          let k;
+          if ((k = part.match(/^an? number called (\w+)(?: starting at (-?[\d.]+))?$/))) { P.vars[k[1]] = Object.keys(P.vars).length; if (k[2]) P.init[k[1]] = Math.round(parseFloat(k[2]) * 100); }
+          else if (/^an? operation$/.test(part)) P.hasOp = true;
+          else throw new Error(`I can remember “a number called …” or “an operation”, not “${part}”`);
+        }
+        continue;
+      }
+      if ((m = s.match(/^when (?:i press|i type|i click on) (.+)$/))) {
+        const what = m[1]; let labels;
+        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
+        else if (/^an? operation$/.test(what)) labels = ['+', '-', '×', '÷'];
+        else if (/^(the )?enter( key)?$/.test(what)) labels = ['ENTER'];
+        else if (q.length) labels = [q[0]];
+        else if (labelOf(what)) labels = [labelOf(what)];
+        else labels = [what.toUpperCase()];
+        ev = { kind: 'press', labels, actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when i (?:click|tap|press) an item in (\w+)$/))) {
+        if (!P.list || P.list.name !== m[1]) throw new Error(`There's no list called “${m[1]}”`);
+        ev = { kind: 'item', labels: [], actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when the app (?:opens|starts)$/))) { ev = { kind: 'start', labels: [], actions: [], line: l }; P.events.push(ev); continue; }
+      if (ev) { ev.actions.push({ s, l }); continue; }
+      throw new Error('I don\'t know this kind of sentence');
+    } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
+  }
+  if (!P.groups.length && !P.displays.length && !P.box) throw new Error('Describe a display, a text box or some buttons to start.');
+
+  // ---- expressions: numbers with 2 decimals (i64, x100) ----
+  function expr(src, ctx) {
+    const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').replace(/([()])/g, ' $1 ').trim().split(/\s+/);
     let i = 0;
     const atom = () => {
-      let w = t[i++];
-      if (w === 'the') w = t[i++];
+      let w = t[i++]; if (w === 'the') w = t[i++];
       if (w === undefined) throw new Error('the sentence ends too early');
-      if (/^-?\d+$/.test(w)) return c(parseInt(w, 10));
-      if (w === 'digit' || w === 'number' && digit !== undefined) { if (digit === undefined) throw new Error('“the digit” only makes sense in “When I press a digit”'); return c(digit); }
-      return [...c(varAddr(w)), ...LOAD];
+      if (w === '(') { const e = add(); if (t[i++] !== ')') throw new Error('missing a closing bracket'); return e; }
+      if (/^-?\d+(\.\d+)?$/.test(w)) return C(Math.round(parseFloat(w) * 100));
+      if (w === 'digit') { if (ctx.digit === undefined) throw new Error('“the digit” only makes sense in “When I press a digit”'); return C(ctx.digit * 100); }
+      return [...c(VARS_AT + 8 * varIndex(w)), ...LD64];
     };
-    const level = (ops, next) => () => { let out = next(); while (t[i] in ops) { const op = ops[t[i++]]; out = [...out, ...next(), op]; } return out; };
-    const mul = level({ times: MUL, over: DIVS }, atom), add = level({ plus: ADD, minus: SUB }, mul);
+    const post = () => { let e = atom(); while (t[i] === 'percent' || t[i] === '%') { i++; e = [...e, ...C(100), L.divs]; } return e; };
+    const mul = () => { let e = post(); while (['times', 'over', 'of'].includes(t[i])) { const op = t[i++]; e = [...e, ...post(), ...call(op === 'over' ? F.div : F.mul)]; } return e; };
+    const add = () => { let e = mul(); while (t[i] === 'plus' || t[i] === 'minus') { const op = t[i++]; e = [...e, ...mul(), op === 'plus' ? L.add : L.sub]; } return e; };
     const out = add();
     if (i < t.length) throw new Error(`I don't understand “${t.slice(i).join(' ')}”`);
     return out;
   }
-  const setVar = (name, valueBytes) => [...c(varAddr(name)), ...valueBytes, ...STORE];
+  const COND = [['is more than', L.gt], ['is greater than', L.gt], ['is bigger than', L.gt], ['is less than', L.lt], ['is smaller than', L.lt], ['is at least', L.ge], ['is at most', L.le], ['is not', L.ne], ['is', L.eq]];
+  function cond(src, ctx) { for (const [w, op] of COND) { const k = src.indexOf(' ' + w + ' '); if (k > 0) return [...expr(src.slice(0, k), ctx), ...expr(src.slice(k + w.length + 2), ctx), op]; } throw new Error(`I can't read the condition “${src}” (try “x is more than 1”)`); }
+  const setVar = (name, val) => { const v = varIndex(name); return [...c(VARS_AT + 8 * v), ...val, ...ST64, ...c(PLACES_AT + 4 * v), ...c(0), ...ST32]; };
+  const storedDisplays = () => P.displays.filter(d => d.stored);
 
-  function action(s, label) {
-    const digit = /^\d$/.test(label) ? +label : undefined;
+  function action(s, ctx) {
     let m;
-    if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], digit));
-    if ((m = s.match(/^show (.+?)(?: on the display)?$/))) return [...c(SHOWN_AT), ...expr(m[1], digit), ...STORE];
-    if (/^remember the operation$/.test(s)) { if (!(label in OPCODE)) throw new Error('“Remember the operation” only works for + − × ÷ buttons'); return [...c(OP_AT), ...c(OPCODE[label]), ...STORE]; }
-    if ((m = s.match(/^apply the operation to (\w+) and (\w+),? and put the answer in (\w+)$/))) {
-      if (!prog.hasOp) throw new Error('Add “Remember an operation.” first');
-      const [a, b] = [[...c(varAddr(m[1])), ...LOAD], [...c(varAddr(m[2])), ...LOAD]];
-      const when = (code, val) => [...c(OP_AT), ...LOAD, ...c(code), EQ, ...IF, ...setVar(m[3], val), END];
-      return [...when(1, [...a, ...b, ADD]), ...when(2, [...a, ...b, SUB]), ...when(3, [...a, ...b, MUL]),
-              ...c(OP_AT), ...LOAD, ...c(4), EQ, ...IF, ...b, EQZ, ...IF, ...setVar(m[3], c(0)), 0x05, ...setVar(m[3], [...a, ...b, DIVS]), END, END];
+    if ((m = s.match(/^if (.+?), (.+)$/))) return [...cond(m[1], ctx), ...IF, ...action(m[2], ctx), END];
+    if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], ctx));
+    if ((m = s.match(/^type the digit into (\w+)$/))) { if (ctx.digit === undefined) throw new Error('“Type the digit” only works in “When I press a digit”'); return [...c(varIndex(m[1])), ...c(ctx.digit), ...call(F.tdigit)]; }
+    if ((m = s.match(/^type a (?:point|dot|decimal point) into (\w+)$/))) return [...c(varIndex(m[1])), ...call(F.tpoint)];
+    if ((m = s.match(/^show (.+?)(?: on (\w+))?$/))) {
+      const ds = storedDisplays(); let d;
+      if (m[2]) { d = ds.find(x => x.name === m[2]); if (!d) throw new Error(`There's no display called “${m[2]}” that shows numbers or money`); }
+      else { if (ds.length !== 1) throw new Error(ds.length ? 'Say which display: “Show x on name.”' : 'Add a display that “shows numbers” first'); d = ds[0]; }
+      return [...c(DISP_AT + 8 * d.idx), ...expr(m[1], ctx), ...ST64];
     }
+    if ((m = s.match(/^clear (\w+)$/))) {
+      const n = m[1];
+      if (P.named[n] === 'box') return [...c(BOX_AT), ...c(0), ...ST8];
+      if (P.named[n] === 'list') return [...c(LIST_AT), ...c(0), ...ST8];
+      return setVar(n, C(0));
+    }
+    if (/^remember the operation$/.test(s)) { if (!(ctx.label in OPCODE)) throw new Error('“Remember the operation” only works for + − × ÷ buttons'); return [...c(OP_AT), ...c(OPCODE[ctx.label]), ...ST32]; }
+    if ((m = s.match(/^apply the operation to (\w+) and (\w+),? and put the answer in (\w+)$/))) {
+      if (!P.hasOp) throw new Error('Add “Remember … an operation.” first');
+      const a = [...c(VARS_AT + 8 * varIndex(m[1])), ...LD64], b = [...c(VARS_AT + 8 * varIndex(m[2])), ...LD64];
+      const when = (code, val) => [...c(OP_AT), ...LD32, ...c(code), I.eq, ...IF, ...setVar(m[3], val), END];
+      return [...when(1, [...a, ...b, L.add]), ...when(2, [...a, ...b, L.sub]), ...when(3, [...a, ...b, ...call(F.mul)]), ...when(4, [...a, ...b, ...call(F.div)])];
+    }
+    if ((m = s.match(/^add (\w+) to (\w+)$/))) { if (P.named[m[1]] !== 'box' || P.named[m[2]] !== 'list') throw new Error('“Add” needs a text box and a list, like “Add task to tasks.”'); return [...c(LIST_AT), ...c(BOX_AT), ...call(F.listadd)]; }
+    if (/^(tick|untick|check) it$/.test(s)) { if (!ctx.item) throw new Error('“Tick it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(1), ...call(F.listclick)]; }
+    if (/^(remove|delete) it$/.test(s)) { if (!ctx.item) throw new Error('“Remove it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(2), ...call(F.listclick)]; }
     throw new Error('I don\'t know this action');
   }
+  const runActions = (e, ctx) => e.actions.flatMap(a => { try { return action(a.s, ctx); } catch (err) { throw new Error(`Line ${a.l.n}, “${a.l.raw}”: ${err.message}`); } });
 
-  const lines = text.split('\n').flatMap((raw, n) => raw.split(/(?<=\.)\s+/)
-      .flatMap(p => /^\s*when\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
-      .map(p => ({ n: n + 1, raw: p.trim(), s: p.trim().toLowerCase().replace(/[.:;!]+$/, '').trim() }))).filter(l => l.s && !l.s.startsWith('#'));
-  for (const l of lines) {
-    const s = l.s; let m;
-    try {
-      if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { prog.bg = colourOf(m[1]); ev = null; trace.push([l.raw, 'screen colour']); continue; }
-      if ((m = s.match(/^(?:there is )?a display at the top(?: shows numbers in (\w+))?(?: on (\w+))?$/))) { prog.display = { ink: m[1] ? colourOf(m[1]) : 1, bg: m[2] ? colourOf(m[2]) : 0 }; ev = null; trace.push([l.raw, 'display']); continue; }
-      if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
-        const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
-        if (m[1]) prog.perRow = words[m[1]] || parseInt(m[1], 10) || 4;
-        for (const w of m[2].split(/[\s,]+/).filter(Boolean)) { const lab = LABEL[w]; if (!lab) throw new Error(`“${w}” isn't a button label I can draw (digits, + − × ÷ =, C)`); prog.buttons.push(lab); }
-        ev = null; trace.push([l.raw, `${prog.buttons.length} buttons`]); continue;
-      }
-      if ((m = s.match(/^the (?:(digit|operation|equals|clear|=|c) )?buttons? (?:are|is) (\w+)$/))) {
-        const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C' }[m[1]] || 'all';
-        const col = colourOf(m[2]); if (k === 'all') prog.colours = { digit: col, op: col, '=': col, C: col }; else prog.colours[k] = col;
-        ev = null; trace.push([l.raw, 'button colour']); continue;
-      }
-      if ((m = s.match(/^the labels are (\w+)$/))) { prog.ink = colourOf(m[1]); trace.push([l.raw, 'label colour']); continue; }
-      if ((m = s.match(/^remember (.+)$/)) && !ev) {
-        for (const part of m[1].split(/\s*(?:,|\band\b)\s*/).filter(Boolean)) {
-          let k;
-          if ((k = part.match(/^an? number called (\w+)$/))) prog.vars[k[1]] = Object.keys(prog.vars).length;
-          else if (/^an? operation$/.test(part)) prog.hasOp = true;
-          else throw new Error(`I can remember “a number called …” or “an operation”, not “${part}”`);
-        }
-        trace.push([l.raw, 'memory']); continue;
-      }
-      if ((m = s.match(/^when i press (.+)$/))) {
-        const what = m[1];
-        let labels;
-        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
-        else if (/^an? operation$/.test(what)) labels = ['+', '-', 'x', '/'];
-        else if (LABEL[what]) labels = [LABEL[what]];
-        else throw new Error(`I don't know a button called “${what}”`);
-        ev = { labels, actions: [] }; prog.events.push(ev); trace.push([l.raw, 'event']); continue;
-      }
-      if (ev) { action(s, ev.labels[0]); ev.actions.push(s); trace.push([l.raw, 'action']); continue; }
-      throw new Error('I don\'t know this kind of sentence');
-    } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
+  // ---- layout, top to bottom ----
+  let y = 6; const layout = { titles: [], displays: [], buttons: [] };
+  for (const t of P.titles) { const sc = t.text.length * 8 <= 152 ? 2 : 1; layout.titles.push({ ...t, sc, x: Math.max(4, (W - t.text.length * 4 * sc) >> 1), y }); y += sc * 5 + 6; }
+  const big = P.displays.length === 1 && !P.box && !P.list;
+  for (const d of P.displays) {
+    const sc = big ? 3 : 2, h = big ? 30 : 20; let ly = null;
+    if (d.label) { ly = y; y += 8; }
+    layout.displays.push({ ...d, ly, y, h, sc }); y += h + 6;
   }
-  if (!prog.buttons.length && !prog.display) throw new Error('Describe a display or some buttons to start.');
-
-  // ---- layout ----
-  const top = prog.display ? 38 : 4, cols = Math.min(prog.perRow, Math.max(1, prog.buttons.length)), rows = Math.ceil(prog.buttons.length / cols) || 1;
-  const bw = Math.floor((120 - (cols - 1) * 4) / cols), bh = Math.min(40, Math.floor((124 - top - (rows - 1) * 4) / rows));
-  const layout = prog.buttons.map((lab, i) => ({ lab, x: 4 + (i % cols) * (bw + 4), y: top + Math.floor(i / cols) * (bh + 4), w: bw, h: bh }));
-  const kind = lab => /\d/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab;
-  for (const e of prog.events) for (const lab of e.labels) if (!prog.buttons.includes(lab) && e.labels.length === 1) throw new Error(`There's no ${lab} button to press. Add it to the buttons list.`);
-
-  // ---- assemble the program's own parts ----
-  const drawParts = [{ label: 'Paint the screen', bytes: [...c(0), ...c(0), ...c(128), ...c(128), ...c(prog.bg), ...call(RECT)] }];
-  if (prog.display) drawParts.push({ label: 'Draw the display and the number it shows', bytes: [...c(4), ...c(4), ...c(120), ...c(28), ...c(prog.display.bg), ...call(RECT), ...c(SHOWN_AT), ...LOAD, ...c(120), ...c(10), ...c(prog.display.ink), ...c(3), ...call(NUM)] });
-  for (const b of layout) drawParts.push({ label: `Draw button ${b.lab === 'x' ? '×' : b.lab === '/' ? '÷' : b.lab}`, bytes: [...c(b.x), ...c(b.y), ...c(b.w), ...c(b.h), ...c(prog.colours[kind(b.lab)] ?? 8), ...call(RECT),
-    ...c(GLYPH[b.lab]), ...c(b.x + ((b.w - 6) >> 1)), ...c(b.y + ((b.h - 10) >> 1)), ...c(prog.ink), ...c(2), ...call(GLY)] });
-  const clickParts = [];
-  for (const b of layout) {
-    const acts = prog.events.filter(e => e.labels.includes(b.lab)).flatMap(e => e.actions.flatMap(a => action(a, b.lab)));
-    if (!acts.length) continue;
-    clickParts.push({ label: `If the click is on ${b.lab === 'x' ? '×' : b.lab === '/' ? '÷' : b.lab}, do its actions`, bytes: [...g(0), ...c(b.x), GE, ...g(0), ...c(b.x + b.w), LT, AND, ...g(1), ...c(b.y), GE, AND, ...g(1), ...c(b.y + b.h), LT, AND, ...IF, ...acts, 0x0f, END] });
+  if (P.box) { if (P.box.label) { P.box.ly = y; y += 8; } P.box.y = y; y += 22; }
+  if (P.list) { P.list.y = y; y += LIST_MAX * ROW + 4; }
+  const rows = P.groups.reduce((n, gp) => n + Math.ceil(gp.labels.length / gp.per), 0);
+  if (rows) {
+    const bh = Math.min(40, Math.floor((H - 4 - y - (rows - 1) * 4) / rows));
+    if (bh < 14) throw new Error('There are too many things to fit on the screen. Try fewer buttons or displays.');
+    for (const gp of P.groups) {
+      const bw = Math.floor((152 - (gp.per - 1) * 4) / gp.per);
+      gp.labels.forEach((lab, i) => { if (i && i % gp.per === 0) y += bh + 4; layout.buttons.push({ lab, x: 4 + (i % gp.per) * (bw + 4), y, w: bw, h: bh }); });
+      y += bh + 4;
+    }
   }
-  const drawBody = [0x00, ...drawParts.flatMap(p => p.bytes), END], clickBody = [0x00, ...clickParts.flatMap(p => p.bytes), END];
-  const sec = (id, b) => [id, ...uleb(b.length), ...b], nm = s => [...uleb(s.length), ...[...s].map(ch => ch.charCodeAt(0))];
-  const bodies = [drawBody, clickBody, libRect, libGlyph, libNumber];
-  const head = [0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
-    ...sec(1, [3, 0x60, 0, 0, 0x60, 2, 0x7f, 0x7f, 0, 0x60, 5, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0]),
-    ...sec(3, [5, 0, 1, 2, 2, 2]), ...sec(5, [1, 0, 1]),
-    ...sec(7, [3, ...nm('memory'), 2, 0, ...nm('draw'), 0, 0, ...nm('click'), 0, 1])];
-  const code = sec(10, [5, ...bodies.flatMap(b => [...uleb(b.length), ...b])]);
-  const data = sec(11, [1, 0, ...c(FONT_AT), END, ...uleb(FONT.length), ...FONT]);
-  const bytes = new Uint8Array([...head, ...code, ...data]);
-  const libBytes = [libRect, libGlyph, libNumber].reduce((n, b) => n + b.length, 0) + FONT.length;
-  return { bytes, trace, layout, drawParts, clickParts, libBytes, sizes: { total: bytes.length, yours: drawParts.concat(clickParts).reduce((n, p) => n + p.bytes.length, 0) } };
+  const kindOf = lab => /^\d$/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab === '=' ? '=' : lab === 'C' ? 'C' : lab === '.' ? '.' : 'word';
+  for (const e of P.events) if (e.kind === 'press') for (const lab of e.labels) if (e.labels.length === 1 && lab !== 'ENTER' && !layout.buttons.some(b => b.lab === lab)) throw new Error(`Line ${e.line.n}: there's no ${lab} button to press. Add it to a “Buttons:” list.`);
+
+  // ---- strings go into memory once ----
+  const strs = []; let strPtr = STR_AT; const strAt = s => { const codes = toCodes(s); const at = strPtr; strs.push({ at, codes }); strPtr += codes.length; return { at, len: codes.length }; };
+  const textCall = (s, x, yy, col, sc) => { const r = strAt(s); return [...c(r.at), ...c(r.len), ...c(x), ...c(yy), ...c(col), ...c(sc), ...call(F.text)]; };
+
+  // ---- the program's own parts ----
+  const parts = [];
+  const startBody = [...Object.entries(P.init).flatMap(([n, v]) => [...c(VARS_AT + 8 * P.vars[n]), ...C(v), ...ST64]), ...P.events.filter(e => e.kind === 'start').flatMap(e => runActions(e, {}))];
+  parts.push({ label: 'Start: set starting values', bytes: startBody });
+  const draw = [...c(0), ...c(0), ...c(W), ...c(H), ...c(P.bg), ...call(F.rect)];
+  parts.push({ label: 'Paint the screen', bytes: draw.slice() });
+  for (const t of layout.titles) { const b = textCall(t.text, t.x, t.y, t.colour, t.sc); draw.push(...b); parts.push({ label: `Write “${t.text}”`, bytes: b }); }
+  for (const d of layout.displays) {
+    const b = [];
+    if (d.label) b.push(...textCall(d.label, 6, d.ly, 1, 1));
+    b.push(...c(4), ...c(d.y), ...c(152), ...c(d.h), ...c(d.back), ...call(F.rect));
+    b.push(...(d.stored ? [...c(DISP_AT + 8 * d.idx), ...LD64] : expr(d.expr, {})), ...c(150), ...c(d.y + ((d.h - 5 * d.sc) >> 1)), ...c(d.ink), ...c(d.sc), ...c(d.money ? 1 : 0), ...call(F.num));
+    draw.push(...b); parts.push({ label: `Display${d.label ? ' “' + d.label + '”' : ''}${d.stored ? '' : ': ' + d.expr}`, bytes: b });
+  }
+  if (P.box) {
+    const b = [];
+    if (P.box.label) b.push(...textCall(P.box.label, 6, P.box.ly, 1, 1));
+    b.push(...c(4), ...c(P.box.y), ...c(152), ...c(18), ...c(0), ...call(F.rect), ...c(BOX_AT + 1), ...c(BOX_AT), ...LD8, ...c(8), ...c(P.box.y + 4), ...c(1), ...c(2), ...call(F.text),
+      ...c(BOX_AT), ...LD8, ...c(8), I.mul, ...c(8), I.add, ...c(P.box.y + 3), ...c(2), ...c(12), ...c(10), ...call(F.rect));
+    draw.push(...b); parts.push({ label: `Text box “${P.box.name}”`, bytes: b });
+  }
+  if (P.list) { const b = [...c(LIST_AT), ...c(P.list.y), ...c(1), ...call(F.listdraw)]; draw.push(...b); parts.push({ label: `List “${P.list.name}”`, bytes: b }); }
+  for (const bt of layout.buttons) {
+    const k = kindOf(bt.lab), col = P.colours['w:' + bt.lab] ?? P.colours[k] ?? 8, b = [];
+    if (P.round) { const r = (Math.min(bt.w, bt.h) >> 1) - 1; b.push(...c(bt.x + (bt.w >> 1)), ...c(bt.y + (bt.h >> 1)), ...c(r), ...c(col), ...call(F.circle)); }
+    else b.push(...c(bt.x), ...c(bt.y), ...c(bt.w), ...c(bt.h), ...c(col), ...call(F.rect));
+    const len = toCodes(bt.lab).length, sc = len * 8 <= bt.w - 4 && !(P.round && len * 8 > Math.min(bt.w, bt.h) - 6) ? 2 : 1;
+    b.push(...textCall(bt.lab, bt.x + ((bt.w - len * 4 * sc) >> 1), bt.y + ((bt.h - 5 * sc) >> 1), P.ink, sc));
+    draw.push(...b); parts.push({ label: `Button ${bt.lab}`, bytes: b });
+  }
+  const pressActs = lab => P.events.filter(e => e.kind === 'press' && e.labels.includes(lab)).flatMap(e => runActions(e, { label: lab, digit: /^\d$/.test(lab) ? +lab : undefined }));
+  const click = [];
+  for (const bt of layout.buttons) {
+    const acts = pressActs(bt.lab); if (!acts.length) continue;
+    const b = [...g(0), ...c(bt.x), I.ge, ...g(0), ...c(bt.x + bt.w), I.lt, I.and, ...g(1), ...c(bt.y), I.ge, I.and, ...g(1), ...c(bt.y + bt.h), I.lt, I.and, ...IF, ...acts, RET, END];
+    click.push(...b); parts.push({ label: `When ${bt.lab} is pressed`, bytes: b });
+  }
+  const itemEv = P.events.filter(e => e.kind === 'item');
+  if (itemEv.length) {
+    const b = [...g(1), ...c(P.list.y), I.ge, ...g(1), ...c(P.list.y + LIST_MAX * ROW), I.lt, I.and, ...IF,
+      ...g(1), ...c(P.list.y), I.sub, ...c(ROW), I.divs, ...st(2), ...itemEv.flatMap(e => runActions(e, { item: true })), RET, END];
+    click.push(...b); parts.push({ label: `When an item in “${P.list.name}” is clicked`, bytes: b });
+  }
+  // keyboard: Enter, typing into the text box, and keys that match buttons
+  const KEYS = { '+':[43], '-':[45], '×':[42,120], '÷':[47], '=':[61], '.':[46,44], 'C':[27,99] };
+  const key = [];
+  const enterActs = pressActs('ENTER');
+  if (enterActs.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...enterActs, RET, END);
+  else if (layout.buttons.some(b => b.lab === '=')) { const a = pressActs('='); if (a.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...a, RET, END); }
+  if (P.box) key.push(...c(BOX_AT), ...g(0), ...call(F.boxkey), RET);
+  else for (const bt of layout.buttons) {
+    const codes = /^\d$/.test(bt.lab) ? [48 + +bt.lab] : KEYS[bt.lab]; if (!codes) continue;
+    const a = pressActs(bt.lab); if (!a.length) continue;
+    for (const kc of codes) key.push(...g(0), ...c(kc), I.eq, ...IF, ...a, RET, END);
+  }
+  if (key.length) parts.push({ label: 'Keyboard: Enter, typing and button shortcuts', bytes: key });
+
+  // ---- assemble the module ----
+  const sec = (id, b) => [id, ...uleb(b.length), ...b];
+  const nm = s => [...uleb(s.length), ...[...s].map(ch => ch.charCodeAt(0))];
+  const T = (params, results = []) => [0x60, params.length, ...params, results.length, ...results];
+  const i32 = 0x7f, i64 = 0x7e;
+  const types = [T([]), T([i32, i32]), T([i32]), T([i32, i32, i32, i32, i32]), T([i32, i32, i32, i32, i32, i32]), T([i64, i32, i32, i32, i32, i32]), T([i32, i32, i32, i32]), T([i64, i64], [i64]), T([i32, i32, i32])];
+  const fnTypes = [0, 0, 1, 2, 3, 3, 4, 5, 6, 7, 7, 1, 2, 1, 1, 8, 8];
+  const body = (locals, code) => { const decl = [locals.length, ...locals.flatMap(([n, t]) => [n, t])]; const b = [...decl, ...code, END]; return [...uleb(b.length), ...b]; };
+  const bodies = [body([], startBody), body([], draw), body([[1, i32]], click), body([], key),
+    body(lib.rect, lib.rect.code), body(lib.glyph, lib.glyph.code), body(lib.text, lib.text.code), body(lib.num, lib.num.code), body(lib.circle, lib.circle.code),
+    body(lib.mul, lib.mul.code), body(lib.div, lib.div.code), body(lib.tdigit, lib.tdigit.code), body(lib.tpoint, lib.tpoint.code), body(lib.boxkey, lib.boxkey.code),
+    body(lib.listadd, lib.listadd.code), body(lib.listdraw, lib.listdraw.code), body(lib.listclick, lib.listclick.code)];
+  const segs = [{ at: FONT_AT, codes: FONT }, ...strs];
+  const bytes = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...sec(1, [types.length, ...types.flat()]), ...sec(3, [fnTypes.length, ...fnTypes]), ...sec(5, [1, 0, 1]),
+    ...sec(7, [5, ...nm('memory'), 2, 0, ...nm('start'), 0, 0, ...nm('draw'), 0, 1, ...nm('click'), 0, 2, ...nm('key'), 0, 3]),
+    ...sec(10, [bodies.length, ...bodies.flat()]),
+    ...sec(11, [segs.length, ...segs.flatMap(s => [0, ...c(s.at), END, ...uleb(s.codes.length), ...s.codes])])]);
+  const libBytes = bodies.slice(4).reduce((n, b) => n + b.length, 0) + FONT.length;
+  return { bytes, parts, layout, list: P.list, box: P.box, width: W, height: H, sizes: { total: bytes.length, yours: bodies.slice(0, 4).reduce((n, b) => n + b.length, 0), library: libBytes }, memory: { VARS_AT, DISP_AT, BOX_AT, LIST_AT }, vars: P.vars };
 }
 
 
-const CALC = "# A calculator, in Structured English v0.1\nThe screen is charcoal.\nA display at the top shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 = +.\nThe operation buttons are orange.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Entry becomes entry times 10 plus the digit.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Entry becomes 0.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Entry becomes 0.\n  Total becomes 0.\n  Show entry.\n";
+const PROGS = {"Calculator": "# A calculator with decimals\nThe screen is charcoal.\nWrite \"CALCULATOR\" at the top in grey.\nA display shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 . +.\nButtons, one per row: =.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Type the digit into entry.\n  Show entry.\n\nWhen I press .:\n  Type a point into entry.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Clear entry.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Clear entry.\n  Total becomes 0.\n  Show entry.\n", "Tip calculator": "# A tip calculator\nThe screen is charcoal.\nWrite \"TIP CALCULATOR\" at the top in white.\nRemember a number called bill, and a number called rate starting at 15.\nA display, labelled \"BILL\", shows bill as money in lime.\nA display, labelled \"TIP\", shows rate percent of bill as money in yellow.\nA display, labelled \"TOTAL\", shows bill plus rate percent of bill as money in sky.\nButtons, three per row: \"10%\" \"15%\" \"20%\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\nThe word buttons are purple.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"10%\":\n  Rate becomes 10.\nWhen I press \"15%\":\n  Rate becomes 15.\nWhen I press \"20%\":\n  Rate becomes 20.\n", "Bill splitter": "# Split a bill between friends\nThe screen is teal.\nWrite \"SPLIT THE BILL\" at the top in white.\nRemember a number called bill, and a number called people starting at 2.\nA display, labelled \"BILL\", shows bill as money in white on black.\nA display, labelled \"PEOPLE\", shows people in white on black.\nA display, labelled \"EACH PAYS\", shows bill divided by people as money in yellow on black.\nButtons, two per row: \"FEWER\" \"MORE\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"MORE\":\n  People becomes people plus 1.\nWhen I press \"FEWER\":\n  If people is more than 1, people becomes people minus 1.\n", "To-do list": "# A to-do list\nThe screen is charcoal.\nWrite \"MY TO DO LIST\" at the top in yellow.\nA text box called task, labelled \"NEW TASK (TYPE IT)\".\nA list called tasks.\nButtons, two per row: \"ADD\" \"CLEAR ALL\".\nThe \"CLEAR ALL\" button is salmon.\n\nWhen I press \"ADD\":\n  Add task to tasks.\nWhen I press enter:\n  Add task to tasks.\nWhen I press \"CLEAR ALL\":\n  Clear tasks.\nWhen I click an item in tasks:\n  Tick it.\n", "Counter": "# A counter with round buttons\nThe screen is purple.\nWrite \"COUNTER\" at the top in white.\nRemember a number called count.\nA display shows count in white on black.\nButtons, three per row: \u2212 \"RESET\" +.\nThe buttons are round.\nThe operation buttons are pink.\nThe \"RESET\" button is grey.\n\nWhen I press +:\n  Count becomes count plus 1.\nWhen I press \u2212:\n  If count is more than 0, count becomes count minus 1.\nWhen I press \"RESET\":\n  Count becomes 0.\n", "\u00b0C to \u00b0F": "# Celsius to Fahrenheit\nThe screen is blue.\nWrite \"C TO F\" at the top in white.\nRemember a number called celsius.\nA display, labelled \"CELSIUS\", shows celsius in white on black.\nA display, labelled \"FAHRENHEIT\", shows celsius times 9 divided by 5 plus 32 in yellow on black.\nButtons, four per row: 7 8 9 C 4 5 6 \u2212 1 2 3 0.\nThe buttons are sky.\nThe C buttons are salmon.\n\nWhen I press a digit:\n  Type the digit into celsius.\nWhen I press \u2212:\n  Celsius becomes 0 minus celsius.\nWhen I press C:\n  Clear celsius.\n"};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const hex = a => Array.from(a, b => b.toString(16).padStart(2, '0')).join(' ');
 const PAL = ['#000000','#ffffff','#e03131','#2f9e44','#1c7ed6','#f59f00','#ae3ec9','#0ca678','#868e96','#ff8787','#8ce99a','#74c0fc','#ffe066','#e599f7','#343a40','#f783ac'];
 const rgb = PAL.map(h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16)));
-const cv = $('cv'), ctx = cv.getContext('2d'), img = ctx.createImageData(128, 128);
-let prog = null, last = null;
-function paint() { if (!prog) return; prog.e.draw(); for (let i = 0; i < 16384; i++) { const [r, g, b] = rgb[prog.mem[i] & 15]; img.data[i*4] = r; img.data[i*4+1] = g; img.data[i*4+2] = b; img.data[i*4+3] = 255; } ctx.putImageData(img, 0, 0); }
-async function boot(bytes) { const { instance } = await WebAssembly.instantiate(bytes); prog = { e: instance.exports, mem: new Uint8Array(instance.exports.memory.buffer) }; paint(); }
+const cv = $('cv'), ctx = cv.getContext('2d'), img = ctx.createImageData(160, 240);
+let app = null, last = null, current = Object.keys(PROGS)[0];
+let edits = {}; try { edits = JSON.parse(localStorage.getItem('se2-edits') || '{}'); } catch (e) {}
+function paint() { if (!app) return; app.draw(); const m = new Uint8Array(app.memory.buffer); for (let i = 0; i < 38400; i++) { const [r, g, b] = rgb[m[i] & 15]; img.data[i*4] = r; img.data[i*4+1] = g; img.data[i*4+2] = b; img.data[i*4+3] = 255; } ctx.putImageData(img, 0, 0); }
+async function boot(bytes) { const { instance } = await WebAssembly.instantiate(bytes); app = instance.exports; app.start(); paint(); }
 async function build() {
-  const text = $('src').value; try { localStorage.setItem('se-src', text); } catch (e) {}
-  let r; try { r = compileSE(text); } catch (e) { $('msg').textContent = e.message; return; }
+  const text = $('src').value; edits[current] = text; try { localStorage.setItem('se2-edits', JSON.stringify(edits)); } catch (e) {}
+  let r; try { r = compileSE2(text); } catch (e) { $('msg').textContent = e.message; return; }
   $('msg').textContent = ''; last = r;
-  const pack = r.sizes.total - r.sizes.yours - r.libBytes;
-  $('size').textContent = `${r.sizes.total.toLocaleString()} bytes`;
-  $('meter').innerHTML = `<span style="width:${r.sizes.yours / r.sizes.total * 100}%;background:var(--car)"></span><span style="width:${r.libBytes / r.sizes.total * 100}%;background:var(--pru)"></span><span style="width:${pack / r.sizes.total * 100}%;background:var(--mute)"></span>`;
-  $('rows').innerHTML = [...r.drawParts.map(p => ({ ...p, label: 'Draw: ' + p.label })), ...r.clickParts.map(p => ({ ...p, label: 'Click: ' + p.label }))]
-    .map(p => `<div class="row"><div class="l">${esc(p.label)} <span style="color:var(--mute);font-size:13px">(${p.bytes.length} bytes)</span></div><div class="hx">${hex(p.bytes)}</div></div>`).join('')
-    + `<div class="row lib"><div class="l">Built-in library: draw a rectangle, draw a character, draw a number, plus a 3×5 font (${r.libBytes} bytes, the same in every program)</div><div class="hx">Included automatically, like the alphabet: your sentences use it but never have to describe it.</div></div>`;
+  $('size').textContent = r.sizes.total.toLocaleString() + ' bytes';
+  const other = r.sizes.total - r.sizes.yours - r.sizes.library;
+  $('meter').innerHTML = `<span style="width:${r.sizes.yours / r.sizes.total * 100}%;background:var(--car)"></span><span style="width:${r.sizes.library / r.sizes.total * 100}%;background:var(--pru)"></span><span style="width:${other / r.sizes.total * 100}%;background:var(--mute)"></span>`;
+  $('parts').innerHTML = r.parts.filter(p => p.bytes.length).map(p => `<div class="p"><div class="l">${esc(p.label)} <span style="color:var(--mute);font-size:13px">(${p.bytes.length} bytes)</span></div><div class="hx">${hex(p.bytes)}</div></div>`).join('')
+    + `<div class="p"><div class="l" style="color:var(--mute);font-style:italic">Built-in library: rectangles, circles, letters, numbers with decimals, typing, lists, plus a font of ${'0-9 A-Z + − × ÷ = . % £'} (${r.sizes.library.toLocaleString()} bytes, the same in every app)</div><div class="hx" style="border-color:var(--line);color:var(--mute)">Included automatically: your sentences use it without describing it.</div></div>`;
   try { await boot(r.bytes); } catch (e) { $('msg').textContent = 'The machine rejected the bytes: ' + e.message; }
 }
+function pick(name) { current = name; $('src').value = edits[name] ?? PROGS[name]; document.querySelectorAll('#chips button').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === name)); build(); }
+$('chips').innerHTML = Object.keys(PROGS).map(n => `<button data-n="${esc(n)}">${esc(n)}</button>`).join('') + '<button data-reset="1">Undo my edits</button>';
+$('chips').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; if (b.dataset.reset) { delete edits[current]; pick(current); } else pick(b.dataset.n); });
 let t; $('src').addEventListener('input', () => { clearTimeout(t); t = setTimeout(build, 300); });
 $('reset').addEventListener('click', () => { if (last) boot(last.bytes); });
-cv.addEventListener('click', ev => {
-  if (!prog) return; const r = cv.getBoundingClientRect();
-  const x = Math.floor((ev.clientX - r.left) / r.width * 128), y = Math.floor((ev.clientY - r.top) / r.height * 128);
-  try { prog.e.click(x, y); } catch (e) {} paint();
-  $('hint').textContent = `The machine received x = ${x}, y = ${y}.`;
-});
-let saved = null; try { saved = localStorage.getItem('se-src'); } catch (e) {}
-$('src').value = saved || CALC; build();
+cv.addEventListener('click', ev => { if (!app) return; const r = cv.getBoundingClientRect(); try { app.click(Math.floor((ev.clientX - r.left) / r.width * 160), Math.floor((ev.clientY - r.top) / r.height * 240)); } catch (e) {} paint(); });
+const sendKey = code => { if (!app) return; try { app.key(code); } catch (e) {} paint(); };
+const codeOf = k => k === 'Enter' ? 13 : k === 'Backspace' ? 8 : k === 'Escape' ? 27 : k.length === 1 ? k.charCodeAt(0) : null;
+cv.addEventListener('keydown', ev => { const c = codeOf(ev.key); if (c !== null) { ev.preventDefault(); sendKey(c); } });
+$('kb').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === 'Backspace') { ev.preventDefault(); sendKey(codeOf(ev.key)); } });
+$('kb').addEventListener('input', ev => { for (const ch of $('kb').value) sendKey(ch.charCodeAt(0)); $('kb').value = ''; });
+pick(current);
 }
 </script></body></html>

@@ -6,13 +6,18 @@ This project tries to find out, from first principles. It doesn't use a programm
 
 > Status: early research project. The rule-based compilers work and are tested. The trained-AI part does not work yet, and the results below say so honestly.
 
+![Six apps written only in English sentences, running as WebAssembly](docs/six-apps.png)
+
+*Six apps, each written only in English sentences and running as a 3–5 KB WebAssembly binary.*
+
 ## Try it
 
 Live demos (GitHub Pages, in the [`docs/`](docs) folder):
 
 | Demo | What it does | Needs |
 |---|---|---|
-| [Structured English](docs/structured-english.html) | A calculator described only in strict English sentences, compiled to a 2 KB binary that draws every pixel itself | nothing, runs offline |
+| [Structured English v0.2](docs/structured-english.html) | Six small apps (calculator with decimals, tip calculator, bill splitter, to-do list, counter, °C→°F), each written only in English sentences and compiled to a 3–5 KB binary for a 160×240 “tiny phone” | nothing, runs offline |
+| [Structured English v0.1](docs/structured-english-v1.html) | The first version: one whole-number calculator | nothing |
 | [Tiny Machine](docs/tiny-machine.html) | Each word becomes its own binary piece; pieces combine into a clickable program | nothing |
 | [English to Binary](docs/english-to-binary.html) | Strict English maths → WebAssembly, shown sentence by sentence | nothing |
 | [Say It, Compile It](docs/say-it-compile-it.html) | Everyday English → Claude rewrites it into Structured English → compiler → binary | open on claude.ai |
@@ -39,7 +44,8 @@ The key design decision: **the AI only rewrites English into stricter English.**
 
 ```
 compilers/
-  structured-english/   strict English → 128×128 machine binary (calculator milestone)
+  structured-english-v2/  strict English → 160×240 "tiny phone" apps: words, decimals, money, lists, typing, round buttons
+  structured-english/   v0.1: strict English → 128×128 machine binary (calculator milestone)
   tiny-machine/         ~50-word vocabulary → 32×32 clickable programs
   english-to-binary/    English-looking maths language → WebAssembly
 experiments/
@@ -55,13 +61,43 @@ docs/                   the live demo pages
 |---|---|
 | Raw WebAssembly written directly from 10 English task descriptions | 10 / 10 correct first try (same as via Python). Small, integer-only tasks. |
 | Hand-written native Linux binary (178 bytes, no compiler) | Runs and prints its message |
-| Structured English → calculator binary | 13 / 13 automated checks pass (+ − × ÷, negatives, divide by zero, clear) |
+| Structured English v0.1 → calculator binary | 13 / 13 automated checks pass (+ − × ÷, negatives, divide by zero, clear) |
+| Structured English v0.2 → six apps | 28 / 28 checks pass, by simulated presses and typing: 12.5 + 7.25 = 19.75, £48.50 at 20% → £9.70 tip, £84 ÷ 3 = £28.00, to-do add/tick/clear, 37 °C → 98.6 °F |
 | Tiny Machine word-piece compiler | 16 / 16 checks pass, including simulated clicks |
 | Small transformer trained **from scratch** on 16,428 verified English → binary pairs | 100% on training examples, **~5%** on new wording, **~5%** on new numbers. It memorised; it did not understand. |
 
 ### What the failure taught me
 
 The binary was never the hard part. The model produced valid bytes for everything it had seen. It failed because it started knowing **no English**, so it couldn't tell that "odd or not" and "is it odd" mean the same thing. That's why the next step is to start from a small open model that already knows English, and give it the easier job of rewriting into Structured English.
+
+## Example: a whole app in English
+
+This is the complete tip calculator. These sentences are compiled straight to a 3,970-byte WebAssembly binary:
+
+```
+The screen is charcoal.
+Write "TIP CALCULATOR" at the top in white.
+Remember a number called bill, and a number called rate starting at 15.
+A display, labelled "BILL", shows bill as money in lime.
+A display, labelled "TIP", shows rate percent of bill as money in yellow.
+A display, labelled "TOTAL", shows bill plus rate percent of bill as money in sky.
+Buttons, three per row: "10%" "15%" "20%".
+Buttons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.
+The word buttons are purple.
+
+When I press a digit:
+  Type the digit into bill.
+When I press .:
+  Type a point into bill.
+When I press C:
+  Clear bill.
+When I press "10%":
+  Rate becomes 10.
+When I press "15%":
+  Rate becomes 15.
+When I press "20%":
+  Rate becomes 20.
+```
 
 ## Run the tests
 
@@ -75,7 +111,7 @@ npm test
 
 - [x] Structured English v0.1 (calculator)
 - [x] Everyday English → Structured English using Claude, with automatic repair
-- [ ] Letters in the font, decimals, multiple displays (tip calculator, bill splitter)
+- [x] v0.2: letters, decimals and money, several displays, round buttons, a text box with keyboard typing, lists
 - [ ] Build a dataset of everyday English → Structured English pairs
 - [ ] Fine-tune a small open model for that rewriting step, and measure it against the 5% baseline
 - [ ] Output native machine code directly (e.g. a Raspberry Pi calculator)
