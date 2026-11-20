@@ -1,0 +1,22 @@
+ 1/20 fail 1/2   15s A counter for push-ups with a + button and a RESET | three presses show 3: step 4: expected to see "3". screen shows: RESET | PUSH UP
+ 2/20 PASS 3/3   15s A countdown timer from 45 seconds with a START but | 
+ 3/20 PASS 2/2   31s A tip calculator with a keypad and buttons for 10% | 
+ 4/20 fail 0/1   16s Convert kilograms to pounds using a keypad         | 10 kg is 22.05 lb: step 3: expected to see one of [22.05,22.04]. screen shows: K
+ 5/20 PASS 2/2   12s Roll one dice with a ROLL button                   | 
+ 6/20 PASS 2/2   12s A to-do list where I type a task and press enter t | 
+ 7/20 fail 0/1   10s A score keeper for two teams, RED and BLUE, each w | compiler: Line 11: there's no RESET button to press. Add it to a “Buttons:” list
+ 8/20 fail 0/3   11s A stopwatch with START, STOP and RESET buttons     | compiler: Line 13: there's no RESET button to press. Add it to a “Buttons:” list
+ 9/20 PASS 2/2   24s Split a bill between people with a keypad, and MOR | 
+10/20 fail 0/1   11s A water tracker: each press of the GLASS button ad | 3 glasses is 750 ml: step 4: expected to see "750". screen shows: GLASS | - | RE
+11/20 fail 0/1   15s A coin flip with a FLIP button that counts heads a | compiler: Line 12, “Head becomes head plus random number from 1 to 40.”: I don't
+12/20 fail 0/1   24s Work out 20% VAT on a price typed on a keypad      | compiler: I don't understand “one-fourth”
+13/20 fail 0/2   11s A 30 day challenge that starts at 30 days left, an | compiler: Line 8, “If done is less than 31, if done is odd, set done to done plu
+14/20 fail 0/2   16s A savings tracker towards a goal of 800 pounds: ty | compiler: Line 16, “Saved becomes saved plus the digit.”: “the digit” only makes
+15/20 PASS 1/1   15s Convert minutes to hours using a keypad            | 
+16/20 fail 0/2   18s A percentage calculator: type a number on a keypad | compiler: Line 7, “Buttons, 4 per row: 10 20 25 50.”: I can't make a button from
+17/20 fail 0/2   17s A game where a red ball falls down the screen and  | compiler: Line 10, “If left is -10 or more, left becomes 10.”: I don't understan
+18/20 fail 1/2   19s A quiz on adding two random numbers from 1 to 10,  | CHECK goes to a results screen: step 2: there is no "CHECK" to press. screen sho
+19/20 fail 0/1   10s A pocket money saver: each press of WEEK adds 5 po | 4 weeks is 20 pounds: step 1: there is no "WEEK" to press. screen shows: POTTERY
+20/20 fail 3/4   16s A countdown from 10 that starts when I press GO an | 3 seconds after GO shows 7: step 3: expected to see "7". screen shows: COUNTDOWN
+
+EXAM: compiled 12/20, PASSED ALL TESTS 6/20

@@ -1,0 +1,685 @@
+[
+ {
+  "request": "A counter for push-ups with a + button and a RESET button",
+  "tests": [
+   {
+    "name": "three presses show 3",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 3
+     }
+    ]
+   },
+   {
+    "name": "RESET goes back to 0",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "press": "RESET"
+     },
+     {
+      "see": 0
+     },
+     {
+      "not_see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 45 seconds with a START button",
+  "tests": [
+   {
+    "name": "starts at 45",
+    "steps": [
+     {
+      "see": 45
+     }
+    ]
+   },
+   {
+    "name": "5 seconds after START shows 40",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 5
+     },
+     {
+      "see": 40
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 60
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A tip calculator with a keypad and buttons for 10%, 15% and 20%",
+  "tests": [
+   {
+    "name": "15% of 36.40 is 5.46",
+    "steps": [
+     {
+      "type": "36.4"
+     },
+     {
+      "press": "15%"
+     },
+     {
+      "see": 5.46
+     }
+    ]
+   },
+   {
+    "name": "20% of 36.40 is 7.28",
+    "steps": [
+     {
+      "type": "36.4"
+     },
+     {
+      "press": "20%"
+     },
+     {
+      "see": 7.28
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert kilograms to pounds using a keypad",
+  "tests": [
+   {
+    "name": "10 kg is 22.05 lb",
+    "steps": [
+     {
+      "type": "10"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       22.05,
+       22.04
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll one dice with a ROLL button",
+  "tests": [
+   {
+    "name": "shows 1 to 6 after a roll",
+    "steps": [
+     {
+      "press": "ROLL"
+     },
+     {
+      "number_between": [
+       1,
+       6
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "rolling changes the screen",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A to-do list where I type a task and press enter to add it",
+  "tests": [
+   {
+    "name": "adds a task",
+    "steps": [
+     {
+      "keys": "walk dog\n"
+     },
+     {
+      "see": "WALK DOG"
+     }
+    ]
+   },
+   {
+    "name": "adds two tasks",
+    "steps": [
+     {
+      "keys": "milk\neggs\n"
+     },
+     {
+      "see": "MILK"
+     },
+     {
+      "see": "EGGS"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A score keeper for two teams, RED and BLUE, each with its own button that adds a point",
+  "tests": [
+   {
+    "name": "RED 2, BLUE 1",
+    "steps": [
+     {
+      "press": "RED"
+     },
+     {
+      "press": "RED"
+     },
+     {
+      "press": "BLUE"
+     },
+     {
+      "see": 2
+     },
+     {
+      "see": 1
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A stopwatch with START, STOP and RESET buttons",
+  "tests": [
+   {
+    "name": "counts 3 seconds",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 3
+     },
+     {
+      "see": 3
+     }
+    ]
+   },
+   {
+    "name": "STOP freezes it",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "STOP"
+     },
+     {
+      "wait": 3
+     },
+     {
+      "see": 2
+     }
+    ]
+   },
+   {
+    "name": "RESET goes to 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "RESET"
+     },
+     {
+      "see": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Split a bill between people with a keypad, and MORE and FEWER buttons for the number of people, starting at 2 people",
+  "tests": [
+   {
+    "name": "90 between 2 is 45",
+    "steps": [
+     {
+      "type": "90"
+     },
+     {
+      "see": 45
+     }
+    ]
+   },
+   {
+    "name": "90 between 3 is 30",
+    "steps": [
+     {
+      "type": "90"
+     },
+     {
+      "press": "MORE"
+     },
+     {
+      "see": 30
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A water tracker: each press of the GLASS button adds 250 ml, and it shows the total in ml",
+  "tests": [
+   {
+    "name": "3 glasses is 750 ml",
+    "steps": [
+     {
+      "press": "GLASS"
+     },
+     {
+      "press": "GLASS"
+     },
+     {
+      "press": "GLASS"
+     },
+     {
+      "see": 750
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A coin flip with a FLIP button that counts heads and tails",
+  "tests": [
+   {
+    "name": "10 flips: heads + tails = 10",
+    "steps": [
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "press": "FLIP"
+     },
+     {
+      "two_add_to": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 20% VAT on a price typed on a keypad",
+  "tests": [
+   {
+    "name": "VAT on 50 is 10",
+    "steps": [
+     {
+      "type": "50"
+     },
+     {
+      "press_any": [
+       "=",
+       "VAT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 30 day challenge that starts at 30 days left, and a DONE button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 30",
+    "steps": [
+     {
+      "see": 30
+     }
+    ]
+   },
+   {
+    "name": "3 DONEs leaves 27",
+    "steps": [
+     {
+      "press": "DONE"
+     },
+     {
+      "press": "DONE"
+     },
+     {
+      "press": "DONE"
+     },
+     {
+      "see": 27
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A savings tracker towards a goal of 800 pounds: type an amount on a keypad and press SAVE to add it",
+  "tests": [
+   {
+    "name": "shows the 800 goal",
+    "steps": [
+     {
+      "see": 800
+     }
+    ]
+   },
+   {
+    "name": "saving 150 shows 150",
+    "steps": [
+     {
+      "type": "150"
+     },
+     {
+      "press": "SAVE"
+     },
+     {
+      "see": 150
+     },
+     {
+      "see": 800
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert minutes to hours using a keypad",
+  "tests": [
+   {
+    "name": "90 minutes is 1.5 hours",
+    "steps": [
+     {
+      "type": "90"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 1.5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A percentage calculator: type a number on a keypad, and buttons 10%, 25% and 50% show that percent of it",
+  "tests": [
+   {
+    "name": "25% of 80 is 20",
+    "steps": [
+     {
+      "type": "80"
+     },
+     {
+      "press": "25%"
+     },
+     {
+      "see": 20
+     }
+    ]
+   },
+   {
+    "name": "50% of 80 is 40",
+    "steps": [
+     {
+      "type": "80"
+     },
+     {
+      "press": "50%"
+     },
+     {
+      "see": 40
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A game where a red ball falls down the screen and LEFT and RIGHT buttons move a paddle",
+  "tests": [
+   {
+    "name": "the ball moves by itself",
+    "steps": [
+     {
+      "changes": [
+       {
+        "wait": 1
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "LEFT moves the paddle",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "LEFT"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A quiz on adding two random numbers from 1 to 10, with a CHECK button and a results screen",
+  "tests": [
+   {
+    "name": "shows the question numbers",
+    "steps": [
+     {
+      "number_between": [
+       1,
+       10
+      ],
+      "count": 2
+     }
+    ]
+   },
+   {
+    "name": "CHECK goes to a results screen",
+    "steps": [
+     {
+      "changes": [
+       {
+        "type": "5"
+       },
+       {
+        "press": "CHECK"
+       }
+      ]
+     },
+     {
+      "not_see": "CHECK"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A pocket money saver: each press of WEEK adds 5 pounds",
+  "tests": [
+   {
+    "name": "4 weeks is 20 pounds",
+    "steps": [
+     {
+      "press": "WEEK"
+     },
+     {
+      "press": "WEEK"
+     },
+     {
+      "press": "WEEK"
+     },
+     {
+      "press": "WEEK"
+     },
+     {
+      "see": 20
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown from 10 that starts when I press GO and stops at zero",
+  "tests": [
+   {
+    "name": "starts at 10",
+    "steps": [
+     {
+      "see": 10
+     }
+    ]
+   },
+   {
+    "name": "waits for GO",
+    "steps": [
+     {
+      "wait": 3
+     },
+     {
+      "see": 10
+     }
+    ]
+   },
+   {
+    "name": "3 seconds after GO shows 7",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 3
+     },
+     {
+      "see": 7
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 20
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ }
+]

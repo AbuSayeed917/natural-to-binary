@@ -1,0 +1,1841 @@
+[
+ {
+  "request": "A counter for birds seen with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for press-ups with a + button and a RESET button",
+  "tests": [
+   {
+    "name": "3 presses",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 3
+     }
+    ]
+   },
+   {
+    "name": "reset",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "press": "RESET"
+     },
+     {
+      "see": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 100 seconds with a BEGIN button",
+  "tests": [
+   {
+    "name": "starts at 100",
+    "steps": [
+     {
+      "see": 100
+     }
+    ]
+   },
+   {
+    "name": "2 s later",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 98
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 105
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 5 minute timer with a START button that counts down the seconds",
+  "tests": [
+   {
+    "name": "starts at 300",
+    "steps": [
+     {
+      "see": 300
+     }
+    ]
+   },
+   {
+    "name": "4 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 4
+     },
+     {
+      "see": 296
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert hours to minutes using a keypad",
+  "tests": [
+   {
+    "name": "3 hours",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       180
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A tip calculator with a keypad and buttons for 5%, 10% and 15%",
+  "tests": [
+   {
+    "name": "5% of 24.8",
+    "steps": [
+     {
+      "type": "24.8"
+     },
+     {
+      "press": "5%"
+     },
+     {
+      "see_any": [
+       1.24
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 4-sided dice with a THROW button",
+  "tests": [
+   {
+    "name": "1 to 4",
+    "steps": [
+     {
+      "press": "THROW"
+     },
+     {
+      "number_between": [
+       1,
+       4
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Each press of the GLASS button adds 250 ml, and it shows the total",
+  "tests": [
+   {
+    "name": "2 presses = 500",
+    "steps": [
+     {
+      "press": "GLASS"
+     },
+     {
+      "press": "GLASS"
+     },
+     {
+      "see": 500
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 30 day challenge that starts at 30 days left, and a TICK button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 30",
+    "steps": [
+     {
+      "see": 30
+     }
+    ]
+   },
+   {
+    "name": "3 days",
+    "steps": [
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "see": 27
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A score keeper for two teams, HOME and AWAY, each with a button that adds a point",
+  "tests": [
+   {
+    "name": "HOME 1, AWAY 2",
+    "steps": [
+     {
+      "press": "HOME"
+     },
+     {
+      "press": "AWAY"
+     },
+     {
+      "press": "AWAY"
+     },
+     {
+      "see": 1
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Split a bill between people with a keypad, and MORE and FEWER buttons, starting at 2 people",
+  "tests": [
+   {
+    "name": "96 / 2",
+    "steps": [
+     {
+      "type": "96"
+     },
+     {
+      "see": 48
+     }
+    ]
+   },
+   {
+    "name": "96 / 3",
+    "steps": [
+     {
+      "type": "96"
+     },
+     {
+      "press": "MORE"
+     },
+     {
+      "see_any": [
+       32,
+       32
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 25% for a discount on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "25% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A shopping list where I type an item and press enter to add it",
+  "tests": [
+   {
+    "name": "two items",
+    "steps": [
+     {
+      "keys": "bread\njam\n"
+     },
+     {
+      "see": "BREAD"
+     },
+     {
+      "see": "JAM"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A stopwatch with BEGIN, HALT and ZERO buttons",
+  "tests": [
+   {
+    "name": "counts 2",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 2
+     }
+    ]
+   },
+   {
+    "name": "stop",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "HALT"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 2
+     }
+    ]
+   },
+   {
+    "name": "reset",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "ZERO"
+     },
+     {
+      "see": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for laps with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 75 seconds with a START button",
+  "tests": [
+   {
+    "name": "starts at 75",
+    "steps": [
+     {
+      "see": 75
+     }
+    ]
+   },
+   {
+    "name": "4 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 4
+     },
+     {
+      "see": 71
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 80
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 2 minute timer with a START button that counts down the seconds",
+  "tests": [
+   {
+    "name": "starts at 120",
+    "steps": [
+     {
+      "see": 120
+     }
+    ]
+   },
+   {
+    "name": "4 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 4
+     },
+     {
+      "see": 116
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert feet to metres using a keypad",
+  "tests": [
+   {
+    "name": "3 feet",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       0.91
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 12-sided dice with a ROLL button",
+  "tests": [
+   {
+    "name": "1 to 12",
+    "steps": [
+     {
+      "press": "ROLL"
+     },
+     {
+      "number_between": [
+       1,
+       12
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 100 day challenge that starts at 100 days left, and a TICK button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 100",
+    "steps": [
+     {
+      "see": 100
+     }
+    ]
+   },
+   {
+    "name": "4 days",
+    "steps": [
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "see": 96
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Split a bill between people with a keypad, and MORE and FEWER buttons, starting at 4 people",
+  "tests": [
+   {
+    "name": "120 / 4",
+    "steps": [
+     {
+      "type": "120"
+     },
+     {
+      "see": 30
+     }
+    ]
+   },
+   {
+    "name": "120 / 5",
+    "steps": [
+     {
+      "type": "120"
+     },
+     {
+      "press": "MORE"
+     },
+     {
+      "see_any": [
+       24,
+       24
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 17.5% for a pay rise on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "17.5% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 7
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for reps with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert pounds to kilograms using a keypad",
+  "tests": [
+   {
+    "name": "3 pounds",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       1.36
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 8-sided dice with a ROLL button",
+  "tests": [
+   {
+    "name": "1 to 8",
+    "steps": [
+     {
+      "press": "ROLL"
+     },
+     {
+      "number_between": [
+       1,
+       8
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Each press of the WEEK button adds 5 pounds, and it shows the total",
+  "tests": [
+   {
+    "name": "2 presses = 10",
+    "steps": [
+     {
+      "press": "WEEK"
+     },
+     {
+      "press": "WEEK"
+     },
+     {
+      "see": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 7 day challenge that starts at 7 days left, and a NEXT button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 7",
+    "steps": [
+     {
+      "see": 7
+     }
+    ]
+   },
+   {
+    "name": "2 days",
+    "steps": [
+     {
+      "press": "NEXT"
+     },
+     {
+      "press": "NEXT"
+     },
+     {
+      "see": 5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 25% VAT on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "25% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A coin flip with a TOSS button that counts heads and tails",
+  "tests": [
+   {
+    "name": "6 flips",
+    "steps": [
+     {
+      "press": "TOSS"
+     },
+     {
+      "press": "TOSS"
+     },
+     {
+      "press": "TOSS"
+     },
+     {
+      "press": "TOSS"
+     },
+     {
+      "press": "TOSS"
+     },
+     {
+      "press": "TOSS"
+     },
+     {
+      "two_add_to": 6
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A stopwatch with GO, PAUSE and CLEAR buttons",
+  "tests": [
+   {
+    "name": "counts 2",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 2
+     }
+    ]
+   },
+   {
+    "name": "stop",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "PAUSE"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 2
+     }
+    ]
+   },
+   {
+    "name": "reset",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "press": "CLEAR"
+     },
+     {
+      "see": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 40 seconds with a START button",
+  "tests": [
+   {
+    "name": "starts at 40",
+    "steps": [
+     {
+      "see": 40
+     }
+    ]
+   },
+   {
+    "name": "6 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 6
+     },
+     {
+      "see": 34
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 45
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert miles to kilometres using a keypad",
+  "tests": [
+   {
+    "name": "3 miles",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       4.83,
+       4.82
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 4-sided dice with a GO button",
+  "tests": [
+   {
+    "name": "1 to 4",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "number_between": [
+       1,
+       4
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "GO"
+       },
+       {
+        "press": "GO"
+       },
+       {
+        "press": "GO"
+       },
+       {
+        "press": "GO"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Each press of the CUP button adds 200 ml, and it shows the total",
+  "tests": [
+   {
+    "name": "2 presses = 400",
+    "steps": [
+     {
+      "press": "CUP"
+     },
+     {
+      "press": "CUP"
+     },
+     {
+      "see": 400
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 60 day challenge that starts at 60 days left, and a NEXT button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 60",
+    "steps": [
+     {
+      "see": 60
+     }
+    ]
+   },
+   {
+    "name": "2 days",
+    "steps": [
+     {
+      "press": "NEXT"
+     },
+     {
+      "press": "NEXT"
+     },
+     {
+      "see": 58
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 5% for a discount on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "5% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for pages read with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for cups of tea with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 20 seconds with a START button",
+  "tests": [
+   {
+    "name": "starts at 20",
+    "steps": [
+     {
+      "see": 20
+     }
+    ]
+   },
+   {
+    "name": "4 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 4
+     },
+     {
+      "see": 16
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 25
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert litres to pints using a keypad",
+  "tests": [
+   {
+    "name": "3 litres",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       5.28,
+       5.27
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 7 day challenge that starts at 7 days left, and a TICK button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 7",
+    "steps": [
+     {
+      "see": 7
+     }
+    ]
+   },
+   {
+    "name": "3 days",
+    "steps": [
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "see": 4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 17.5% for a discount on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "17.5% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 7
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for steps climbed with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 20 seconds with a GO button",
+  "tests": [
+   {
+    "name": "starts at 20",
+    "steps": [
+     {
+      "see": 20
+     }
+    ]
+   },
+   {
+    "name": "2 s later",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 18
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 25
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 15 minute timer with a START button that counts down the seconds",
+  "tests": [
+   {
+    "name": "starts at 900",
+    "steps": [
+     {
+      "see": 900
+     }
+    ]
+   },
+   {
+    "name": "4 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 4
+     },
+     {
+      "see": 896
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 60 day challenge that starts at 60 days left, and a TICK button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 60",
+    "steps": [
+     {
+      "see": 60
+     }
+    ]
+   },
+   {
+    "name": "2 days",
+    "steps": [
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "see": 58
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 20% for a pay rise on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "20% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 8
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 100 seconds with a GO button",
+  "tests": [
+   {
+    "name": "starts at 100",
+    "steps": [
+     {
+      "see": 100
+     }
+    ]
+   },
+   {
+    "name": "6 s later",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 6
+     },
+     {
+      "see": 94
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "GO"
+     },
+     {
+      "wait": 105
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Convert days to hours using a keypad",
+  "tests": [
+   {
+    "name": "3 days",
+    "steps": [
+     {
+      "type": "3"
+     },
+     {
+      "press_any": [
+       "=",
+       "CONVERT",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see_any": [
+       72
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Split a bill between people with a keypad, and MORE and FEWER buttons, starting at 3 people",
+  "tests": [
+   {
+    "name": "84 / 3",
+    "steps": [
+     {
+      "type": "84"
+     },
+     {
+      "see": 28
+     }
+    ]
+   },
+   {
+    "name": "84 / 4",
+    "steps": [
+     {
+      "type": "84"
+     },
+     {
+      "press": "MORE"
+     },
+     {
+      "see_any": [
+       21,
+       21
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 100 seconds with a START button",
+  "tests": [
+   {
+    "name": "starts at 100",
+    "steps": [
+     {
+      "see": 100
+     }
+    ]
+   },
+   {
+    "name": "6 s later",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 6
+     },
+     {
+      "see": 94
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "START"
+     },
+     {
+      "wait": 105
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 7 day challenge that starts at 7 days left, and a DONE button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 7",
+    "steps": [
+     {
+      "see": 7
+     }
+    ]
+   },
+   {
+    "name": "3 days",
+    "steps": [
+     {
+      "press": "DONE"
+     },
+     {
+      "press": "DONE"
+     },
+     {
+      "press": "DONE"
+     },
+     {
+      "see": 4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 25% for a pay rise on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "25% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 10
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A countdown timer from 20 seconds with a BEGIN button",
+  "tests": [
+   {
+    "name": "starts at 20",
+    "steps": [
+     {
+      "see": 20
+     }
+    ]
+   },
+   {
+    "name": "2 s later",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 2
+     },
+     {
+      "see": 18
+     }
+    ]
+   },
+   {
+    "name": "stops at 0",
+    "steps": [
+     {
+      "press": "BEGIN"
+     },
+     {
+      "wait": 25
+     },
+     {
+      "see": 0
+     },
+     {
+      "no_number_below": 0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 12-sided dice with a THROW button",
+  "tests": [
+   {
+    "name": "1 to 12",
+    "steps": [
+     {
+      "press": "THROW"
+     },
+     {
+      "number_between": [
+       1,
+       12
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       },
+       {
+        "press": "THROW"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 21 day challenge that starts at 21 days left, and a NEXT button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 21",
+    "steps": [
+     {
+      "see": 21
+     }
+    ]
+   },
+   {
+    "name": "3 days",
+    "steps": [
+     {
+      "press": "NEXT"
+     },
+     {
+      "press": "NEXT"
+     },
+     {
+      "press": "NEXT"
+     },
+     {
+      "see": 18
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Work out 12.5% for a pay rise on an amount typed on a keypad",
+  "tests": [
+   {
+    "name": "12.5% of 40",
+    "steps": [
+     {
+      "type": "40"
+     },
+     {
+      "press_any": [
+       "=",
+       "GO"
+      ],
+      "optional": true
+     },
+     {
+      "see": 5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A counter for goals with a + button",
+  "tests": [
+   {
+    "name": "2 presses show 2",
+    "steps": [
+     {
+      "press": "+"
+     },
+     {
+      "press": "+"
+     },
+     {
+      "see": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "Roll a 4-sided dice with a ROLL button",
+  "tests": [
+   {
+    "name": "1 to 4",
+    "steps": [
+     {
+      "press": "ROLL"
+     },
+     {
+      "number_between": [
+       1,
+       4
+      ]
+     },
+     {
+      "no_number_below": 1
+     }
+    ]
+   },
+   {
+    "name": "changes",
+    "steps": [
+     {
+      "changes": [
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       },
+       {
+        "press": "ROLL"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "request": "A 10 day challenge that starts at 10 days left, and a TICK button takes one day off",
+  "tests": [
+   {
+    "name": "starts at 10",
+    "steps": [
+     {
+      "see": 10
+     }
+    ]
+   },
+   {
+    "name": "4 days",
+    "steps": [
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "press": "TICK"
+     },
+     {
+      "see": 6
+     }
+    ]
+   }
+  ]
+ }
+]

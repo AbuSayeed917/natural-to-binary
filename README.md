@@ -61,6 +61,7 @@ experiments/
   02-hand-written-native-binary/  a 178-byte Linux program written byte by byte
   03-tiny-model-from-scratch/     training a small model to map English → bytes
   04-small-local-model/           a free 0.5B open model, before and after LoRA training
+  05-self-learning-loop/          a judge that reads the screen, and a model that learns from its own winners
 docs/                   the live demo pages
 ```
 
@@ -75,6 +76,7 @@ docs/                   the live demo pages
 | Structured English v0.2 → six apps | 28 / 28 checks pass, by simulated presses and typing: 12.5 + 7.25 = 19.75, £48.50 at 20% → £9.70 tip, £84 ÷ 3 = £28.00, to-do add/tick/clear, 37 °C → 98.6 °F |
 | Tiny Machine word-piece compiler | 16 / 16 checks pass, including simulated clicks |
 | Small open model (Qwen2.5-0.5B, CPU only), **after LoRA training** on 529 compiler-checked examples | Compiles and runs: 0–2/10 untrained → **12/20** trained (unseen requests). But only **5/20** actually do what was asked. It learned app *shapes*, not *details* ([details](experiments/04-small-local-model)) |
+| **Self-learning loop**: the model practises, a screen-reading judge marks every try in a sealed box, and it trains on its own winners. No human in the loop | Exam apps that pass **every** behaviour test: **4/20 → 6/20** after one round. The judge is fair (20/20 correct answers pass) and catches 10/10 deliberately broken apps ([details](experiments/05-self-learning-loop)) |
 | Small transformer trained **from scratch** on 16,428 verified English → binary pairs | 100% on training examples, **~5%** on new wording, **~5%** on new numbers. It memorised; it did not understand. |
 
 ### What the failure taught me
@@ -128,6 +130,10 @@ npm test
 - [x] Training kit: compile-checker + Colab notebook for a small open model
 - [ ] Build a dataset of everyday English → Structured English pairs
 - [x] Fine-tune a small open model for the rewriting step: 25% correct, 60% compile on unseen requests (CPU, 40 min)
+- [x] Behaviour tests: a judge that reads the screen and presses buttons, like a person
+- [x] Self-learning loop, round 1 (4/20 → 6/20)
+- [ ] Round 2+: teacher shows one worked example for app kinds the student never solves; 100+ exam tasks; run on a GPU
+- [ ] Experiment C: Claude writes app bytes directly using a toolbox of ready-made byte blocks, judged the same way
 - [ ] Output native machine code directly (e.g. a Raspberry Pi calculator)
 
 ## Related work

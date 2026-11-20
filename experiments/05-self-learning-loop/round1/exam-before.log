@@ -1,0 +1,22 @@
+ 1/20 fail 1/2   15s A counter for push-ups with a + button and a RESET | three presses show 3: step 4: expected to see "3". screen shows: RESET | PUSH UP
+ 2/20 PASS 3/3   25s A countdown timer from 45 seconds with a START but | 
+ 3/20 PASS 2/2   31s A tip calculator with a keypad and buttons for 10% | 
+ 4/20 fail 0/1   17s Convert kilograms to pounds using a keypad         | 10 kg is 22.05 lb: step 3: expected to see one of [22.05,22.04]. screen shows: K
+ 5/20 PASS 2/2   12s Roll one dice with a ROLL button                   | 
+ 6/20 fail 0/2    9s A to-do list where I type a task and press enter t | compiler: Line 3, “Remember a string called task.”: I can remember “a number cal
+ 7/20 fail 0/1   18s A score keeper for two teams, RED and BLUE, each w | RED 2, BLUE 1: step 4: expected to see "2". screen shows: RED +1 | RED +1 | BLUE
+ 8/20 fail 0/3   11s A stopwatch with START, STOP and RESET buttons     | compiler: Line 13: there's no RESET button to press. Add it to a “Buttons:” list
+ 9/20 fail 0/2   24s Split a bill between people with a keypad, and MOR | compiler: Line 16, “If people is at least total divided by people, total becomes
+10/20 fail 0/1   11s A water tracker: each press of the GLASS button ad | 3 glasses is 750 ml: step 4: expected to see "750". screen shows: RESET | GLASS 
+11/20 fail 0/1   14s A coin flip with a FLIP button that counts heads a | 10 flips: heads + tails = 10: step 11: expected two numbers adding up to 10. scr
+12/20 fail 0/1   24s Work out 20% VAT on a price typed on a keypad      | compiler: Line 14, “If bill is still more than the digit, bill becomes bill time
+13/20 fail 1/2   11s A 30 day challenge that starts at 30 days left, an | 3 DONEs leaves 27: step 4: expected to see "27". screen shows: 30 DAY CHALLENGE 
+14/20 fail 0/2   19s A savings tracker towards a goal of 800 pounds: ty | compiler: Line 16, “Save saved.”: I don't know this action
+15/20 PASS 1/1   16s Convert minutes to hours using a keypad            | 
+16/20 fail 0/2   13s A percentage calculator: type a number on a keypad | compiler: Line 7, “Buttons, 3 per row: 10 % .1 + 25 % .07 + 50 % .05.”: I can't 
+17/20 fail 0/2   20s A game where a red ball falls down the screen and  | compiler: Line 10, “If left is -10 or more, left becomes 0.”: I don't understand
+18/20 fail 0/2   19s A quiz on adding two random numbers from 1 to 10,  | compiler: Line 13, “If first equals second, show "YOU ROLLED".”: I can't read th
+19/20 fail 0/1   19s A pocket money saver: each press of WEEK adds 5 po | 4 weeks is 20 pounds: step 1: there is no "WEEK" to press. screen shows: POUNDS 
+20/20 fail 0/4   18s A countdown from 10 that starts when I press GO an | compiler: Line 8, “The "GO" buttons are green.”: I don't know this kind of sente
+
+EXAM: compiled 11/20, PASSED ALL TESTS 4/20

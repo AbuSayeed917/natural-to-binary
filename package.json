@@ -5,7 +5,8 @@
   "license": "MIT",
   "author": "Muhammad Abu Sayeed",
   "scripts": {
-    "test": "node compilers/structured-english-v3/test.cjs && node compilers/structured-english-v2/test.cjs && node compilers/structured-english/test.cjs && node compilers/tiny-machine/test.cjs && node compilers/english-to-binary/test.cjs && cd experiments/01-direct-wasm-benchmark && node run.mjs"
+    "test": "node compilers/structured-english-v3/test.cjs && node compilers/structured-english-v2/test.cjs && node compilers/structured-english/test.cjs && node compilers/tiny-machine/test.cjs && node compilers/english-to-binary/test.cjs && cd experiments/01-direct-wasm-benchmark && node run.mjs",
+    "test:judge": "cd experiments/05-self-learning-loop && node check-exam.js && node check-catches.js"
   },
   "engines": {
     "node": ">=18"

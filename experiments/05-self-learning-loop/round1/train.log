@@ -1,0 +1,12 @@
+training on 41 new winners from 25 tasks + 120 old examples
+/usr/local/lib/python3.13/site-packages/transformers/modeling_utils.py:3195: FutureWarning: `gradient_checkpointing_enable` is deprecated and will be removed in v6. Use `activation_checkpointing_enable` instead.
+step 1/41  loss 0.171  0.2 min
+step 5/41  loss 0.103  1.2 min
+step 10/41  loss 0.043  2.4 min
+step 15/41  loss 0.082  3.6 min
+step 20/41  loss 0.132  4.8 min
+step 25/41  loss 0.032  6.0 min
+step 30/41  loss 0.049  7.1 min
+step 35/41  loss 0.077  8.1 min
+step 40/41  loss 0.025  9.3 min
+saved /home/claude/local/adapter-round1

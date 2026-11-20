@@ -1,0 +1,62 @@
+ 1/60 2/4 passed   29s A counter for birds seen with a + button           | 
+ 2/60 2/4 passed   30s A counter for press-ups with a + button and a RESE | 
+ 3/60 0/4 passed   28s A countdown timer from 100 seconds with a BEGIN bu | compiler: Line 10, “Running becomes true.”: I don't know a number call
+ 4/60 0/4 passed   42s A 5 minute timer with a START button that counts d | compiler: Line 12: there's no CLOSE button to press. Add it to a “Butt
+ 5/60 3/4 passed   38s Convert hours to minutes using a keypad            | 
+ 6/60 1/4 passed   57s A tip calculator with a keypad and buttons for 5%, | 
+ 7/60 0/4 passed   28s Roll a 4-sided dice with a THROW button            | compiler: Line 12, “A number from 1 to 4 goes into first.”: I don't kn
+ 8/60 0/4 passed   40s Each press of the GLASS button adds 250 ml, and it | compiler: Line 6, “Buttons, two per row: "GLASS" +100.”: I can't make 
+ 9/60 0/4 passed  108s A 30 day challenge that starts at 30 days left, an | 3 days: step 1: there is no "TICK" to press. screen shows: 30 DAY CHAL
+10/60 2/4 passed   37s A score keeper for two teams, HOME and AWAY, each  | 
+11/60 0/4 passed   43s Split a bill between people with a keypad, and MOR | compiler: There are too many things to fit on the screen. Try fewer bu
+12/60 0/4 passed   57s Work out 25% for a discount on an amount typed on  | compiler: There are too many things to fit on the screen. Try fewer bu
+13/60 0/4 passed   23s A shopping list where I type an item and press ent | compiler: Line 3, “Remember a string called items.”: I can remember “a
+14/60 0/4 passed   65s A stopwatch with BEGIN, HALT and ZERO buttons      | compiler: Line 23: there's no = button to press. Add it to a “Buttons:
+15/60 3/4 passed   25s A counter for laps with a + button                 | 
+16/60 1/4 passed   49s A countdown timer from 75 seconds with a START but | 
+17/60 0/4 passed   57s A 2 minute timer with a START button that counts d | starts at 120: step 1: expected to see "120". screen shows: RESET | TI
+18/60 0/4 passed   37s Convert feet to metres using a keypad              | 3 feet: step 3: expected to see one of [0.91]. screen shows: FEET TO M
+19/60 2/4 passed   25s Roll a 12-sided dice with a ROLL button            | 
+20/60 0/4 passed   23s A 100 day challenge that starts at 100 days left,  | 4 days: step 1: there is no "TICK" to press. screen shows: 100 DAY CHA
+21/60 0/4 passed   55s Split a bill between people with a keypad, and MOR | compiler: Line 6, “A display, labelled "DONE", says "DONE" at the top 
+22/60 1/4 passed   51s Work out 17.5% for a pay rise on an amount typed o | 
+23/60 3/4 passed   19s A counter for reps with a + button                 | 
+24/60 2/4 passed   42s Convert pounds to kilograms using a keypad         | 
+25/60 2/4 passed   24s Roll a 8-sided dice with a ROLL button             | 
+26/60 0/4 passed   24s Each press of the WEEK button adds 5 pounds, and i | 2 presses = 10: step 3: expected to see "10". screen shows: WEEK | POU
+27/60 0/4 passed   33s A 7 day challenge that starts at 7 days left, and  | 2 days: step 3: expected to see "5". screen shows: 7 DAY CHALLENGE | D
+28/60 0/4 passed   55s Work out 25% VAT on an amount typed on a keypad    | compiler: Line 8: there's no . button to press. Add it to a “Buttons:”
+29/60 0/4 passed   47s A coin flip with a TOSS button that counts heads a | compiler: Line 12, “A number from 1 to 4 goes into toss.”: I don't kno
+30/60 0/4 passed   28s A stopwatch with GO, PAUSE and CLEAR buttons       | compiler: Line 14, “Pausing.”: I don't know this action
+31/60 0/4 passed   42s A countdown timer from 40 seconds with a START but | compiler: Line 8, “Keep running until I press "STOP".”: I don't know t
+32/60 3/4 passed   40s Convert miles to kilometres using a keypad         | 
+33/60 0/4 passed   25s Roll a 4-sided dice with a GO button               | 1 to 4: step 1: there is no "GO" to press. screen shows: YOU ROLLED | 
+34/60 1/4 passed   46s Each press of the CUP button adds 200 ml, and it s | 
+35/60 0/4 passed   25s A 60 day challenge that starts at 60 days left, an | compiler: Line 8, “If days is less than 120, if days is more than 0, c
+36/60 0/4 passed   47s Work out 5% for a discount on an amount typed on a | compiler: Line 15, “Press the digit.”: I don't know this action
+37/60 3/4 passed   27s A counter for pages read with a + button           | 
+38/60 3/4 passed   32s A counter for cups of tea with a + button          | 
+39/60 3/4 passed   52s A countdown timer from 20 seconds with a START but | 
+40/60 1/4 passed   35s Convert litres to pints using a keypad             | 
+41/60 0/4 passed   25s A 7 day challenge that starts at 7 days left, and  | 3 days: step 1: there is no "TICK" to press. screen shows: 7 DAY CHALL
+42/60 1/4 passed   57s Work out 17.5% for a discount on an amount typed o | 
+43/60 1/4 passed   27s A counter for steps climbed with a + button        | 
+44/60 0/4 passed   38s A countdown timer from 20 seconds with a GO button | 2 s later: step 1: there is no "GO" to press. screen shows: COUNTDOWN 
+45/60 0/4 passed   43s A 15 minute timer with a START button that counts  | compiler: Line 16: there's no SEC button to press. Add it to a “Button
+46/60 0/4 passed   26s A 60 day challenge that starts at 60 days left, an | starts at 60: step 1: expected to see "60". screen shows: DAY CHALLENG
+47/60 1/4 passed   52s Work out 20% for a pay rise on an amount typed on  | 
+48/60 2/4 passed   53s A countdown timer from 100 seconds with a GO butto | 
+49/60 0/4 passed   33s Convert days to hours using a keypad               | compiler: Line 17, “Answer days as a fraction of 180.”: I don't know t
+50/60 1/4 passed   50s Split a bill between people with a keypad, and MOR | 
+51/60 0/4 passed   29s A countdown timer from 100 seconds with a START bu | compiler: Line 15: there's no RESET button to press. Add it to a “Butt
+52/60 0/4 passed   24s A 7 day challenge that starts at 7 days left, and  | compiler: Line 8, “If done is less than seven, done becomes done plus 
+53/60 0/4 passed   50s Work out 25% for a pay rise on an amount typed on  | compiler: There are too many things to fit on the screen. Try fewer bu
+54/60 0/4 passed   49s A countdown timer from 20 seconds with a BEGIN but | 2 s later: step 1: there is no "BEGIN" to press. screen shows: COUNTDO
+55/60 0/4 passed   35s Roll a 12-sided dice with a THROW button           | 1 to 12: step 1: there is no "THROW" to press. screen shows: YOU ROLLE
+56/60 0/4 passed   26s A 21 day challenge that starts at 21 days left, an | 3 days: step 4: expected to see "18". screen shows: 21 DAY CHALLENGE |
+57/60 0/4 passed   52s Work out 12.5% for a pay rise on an amount typed o | compiler: Line 14, “Remember salary.”: I don't know this action
+58/60 4/4 passed   27s A counter for goals with a + button                | 
+59/60 4/4 passed   29s Roll a 4-sided dice with a ROLL button             | 
+60/60 0/4 passed   28s A 10 day challenge that starts at 10 days left, an | 4 days: step 1: there is no "TICK" to press. screen shows: 10 DAY CHAL
+
+PRACTICE: solved 25/60 tasks (at least one of 4 tries passed)
