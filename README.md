@@ -60,6 +60,7 @@ experiments/
   01-direct-wasm-benchmark/       can a model write raw WebAssembly bytes directly?
   02-hand-written-native-binary/  a 178-byte Linux program written byte by byte
   03-tiny-model-from-scratch/     training a small model to map English → bytes
+  04-small-local-model/           a free 0.5B open model, before and after LoRA training
 docs/                   the live demo pages
 ```
 
@@ -73,6 +74,7 @@ docs/                   the live demo pages
 | Structured English v0.3 → ten apps | 32 / 32 checks pass: stopwatch counts 2.5 s in 25 ticks; 300 dice rolls all whole numbers 1–6 with every face seen; quiz moves between screens and keeps its score after reopening; the game's basket catches the star; the to-do list keeps ticked tasks after a page reload |
 | Structured English v0.2 → six apps | 28 / 28 checks pass, by simulated presses and typing: 12.5 + 7.25 = 19.75, £48.50 at 20% → £9.70 tip, £84 ÷ 3 = £28.00, to-do add/tick/clear, 37 °C → 98.6 °F |
 | Tiny Machine word-piece compiler | 16 / 16 checks pass, including simulated clicks |
+| Small open model (Qwen2.5-0.5B, CPU only), **after LoRA training** on 529 compiler-checked examples | Compiles and runs: 0–2/10 untrained → **12/20** trained (unseen requests). But only **5/20** actually do what was asked. It learned app *shapes*, not *details* ([details](experiments/04-small-local-model)) |
 | Small transformer trained **from scratch** on 16,428 verified English → binary pairs | 100% on training examples, **~5%** on new wording, **~5%** on new numbers. It memorised; it did not understand. |
 
 ### What the failure taught me
@@ -125,7 +127,7 @@ npm test
 - [x] Safe lab + accuracy scorecard: everyday English → bytes, measured two ways (results to come)
 - [x] Training kit: compile-checker + Colab notebook for a small open model
 - [ ] Build a dataset of everyday English → Structured English pairs
-- [ ] Fine-tune a small open model for that rewriting step, and measure it against the 5% baseline
+- [x] Fine-tune a small open model for the rewriting step: 25% correct, 60% compile on unseen requests (CPU, 40 min)
 - [ ] Output native machine code directly (e.g. a Raspberry Pi calculator)
 
 ## Related work

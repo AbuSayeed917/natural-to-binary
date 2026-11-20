@@ -1,0 +1,19 @@
+Loading weights:   0%|          | 0/290 [00:00<?, ?it/s]Loading weights:   0%|          | 1/290 [00:00<01:07,  4.27it/s]Loading weights:  43%|████▎     | 125/290 [00:00<00:00, 465.30it/s]Loading weights:  68%|██████▊   | 196/290 [00:00<00:00, 545.13it/s]Loading weights:  92%|█████████▏| 268/290 [00:00<00:00, 589.47it/s]Loading weights: 100%|██████████| 290/290 [00:00<00:00, 508.84it/s]
+/usr/local/lib/python3.13/site-packages/transformers/modeling_utils.py:3195: FutureWarning: `gradient_checkpointing_enable` is deprecated and will be removed in v6. Use `activation_checkpointing_enable` instead.
+  warnings.warn(
+trainable params: 8,798,208 || all params: 502,830,976 || trainable%: 1.7497
+step 1/133  loss 2.577  0.2 min
+step 10/133  loss 1.487  3.0 min
+step 20/133  loss 0.793  6.7 min
+step 30/133  loss 0.264  9.8 min
+step 40/133  loss 0.221  12.8 min
+step 50/133  loss 0.298  15.7 min
+step 60/133  loss 0.081  18.3 min
+step 70/133  loss 0.376  21.3 min
+step 80/133  loss 0.296  24.1 min
+step 90/133  loss 0.071  27.3 min
+step 100/133  loss 0.100  30.3 min
+step 110/133  loss 0.039  33.3 min
+step 120/133  loss 0.153  36.3 min
+step 130/133  loss 0.100  39.4 min
+saved adapter
