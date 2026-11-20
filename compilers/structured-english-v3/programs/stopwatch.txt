@@ -1,0 +1,19 @@
+# A stopwatch
+The screen is charcoal.
+Write "STOPWATCH" at the top in white.
+Remember a number called time, and a number called running.
+A display shows time in lime.
+Buttons, two per row: "START" "STOP".
+Buttons, one per row: "RESET".
+The "START" button is green.
+The "STOP" button is salmon.
+
+Every tenth of a second:
+  If running is 1, time becomes time plus 0.1.
+When I press "START":
+  Running becomes 1.
+When I press "STOP":
+  Running becomes 0.
+When I press "RESET":
+  Running becomes 0.
+  Time becomes 0.

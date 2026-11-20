@@ -6,9 +6,9 @@ This project tries to find out, from first principles. It doesn't use a programm
 
 > Status: early research project. The rule-based compilers work and are tested. The trained-AI part does not work yet, and the results below say so honestly.
 
-![Six apps written only in English sentences, running as WebAssembly](docs/six-apps.png)
+![Ten apps written only in English sentences, running as WebAssembly](docs/ten-apps.png)
 
-*Six apps, each written only in English sentences and running as a 3–5 KB WebAssembly binary.*
+*Ten apps, each written only in English sentences and running as a 3–6 KB WebAssembly binary: a calculator, tip calculator, bill splitter, to-do list, stopwatch, dice roller, a two-screen quiz, a small game, a counter and a temperature converter.*
 
 ## Try it
 
@@ -16,7 +16,8 @@ Live demos (GitHub Pages, in the [`docs/`](docs) folder):
 
 | Demo | What it does | Needs |
 |---|---|---|
-| [Structured English v0.2](docs/structured-english.html) | Six small apps (calculator with decimals, tip calculator, bill splitter, to-do list, counter, °C→°F), each written only in English sentences and compiled to a 3–5 KB binary for a 160×240 “tiny phone” | nothing, runs offline |
+| [Structured English v0.3](docs/structured-english.html) | Ten small apps, each written only in English sentences and compiled to a 3–6 KB binary for a 160×240 “tiny phone”. Adds timers, saving between visits, random numbers, several screens, moving shapes and arrow keys, and a 5×7 font | nothing, runs offline |
+| [Structured English v0.2](docs/structured-english-v2.html) | Six apps: words, decimals and money, lists and typing | nothing |
 | [Structured English v0.1](docs/structured-english-v1.html) | The first version: one whole-number calculator | nothing |
 | [Tiny Machine](docs/tiny-machine.html) | Each word becomes its own binary piece; pieces combine into a clickable program | nothing |
 | [English to Binary](docs/english-to-binary.html) | Strict English maths → WebAssembly, shown sentence by sentence | nothing |
@@ -24,6 +25,9 @@ Live demos (GitHub Pages, in the [`docs/`](docs) folder):
 | [Just Say It](docs/just-say-it.html) | Any request; number questions come back as raw bytes, tested and auto-repaired | open on claude.ai |
 
 ## How it works
+
+> **Where does saving live?** The binary can't touch your files; that's what makes it safe. When an app says “Keep tasks between visits”, the compiler marks that piece of memory, and the page (playing the role of an operating system) stores it in the browser. The same goes for the timer, which is the page calling `tick()` ten times a second.
+
 
 ```
 everyday English        "a pink calculator that can only add and subtract"
@@ -44,6 +48,7 @@ The key design decision: **the AI only rewrites English into stricter English.**
 
 ```
 compilers/
+  structured-english-v3/  adds timers, saving, random numbers, screens, moving shapes, arrow keys, 5×7 font
   structured-english-v2/  strict English → 160×240 "tiny phone" apps: words, decimals, money, lists, typing, round buttons
   structured-english/   v0.1: strict English → 128×128 machine binary (calculator milestone)
   tiny-machine/         ~50-word vocabulary → 32×32 clickable programs
@@ -62,6 +67,7 @@ docs/                   the live demo pages
 | Raw WebAssembly written directly from 10 English task descriptions | 10 / 10 correct first try (same as via Python). Small, integer-only tasks. |
 | Hand-written native Linux binary (178 bytes, no compiler) | Runs and prints its message |
 | Structured English v0.1 → calculator binary | 13 / 13 automated checks pass (+ − × ÷, negatives, divide by zero, clear) |
+| Structured English v0.3 → ten apps | 32 / 32 checks pass: stopwatch counts 2.5 s in 25 ticks; 300 dice rolls all whole numbers 1–6 with every face seen; quiz moves between screens and keeps its score after reopening; the game's basket catches the star; the to-do list keeps ticked tasks after a page reload |
 | Structured English v0.2 → six apps | 28 / 28 checks pass, by simulated presses and typing: 12.5 + 7.25 = 19.75, £48.50 at 20% → £9.70 tip, £84 ÷ 3 = £28.00, to-do add/tick/clear, 37 °C → 98.6 °F |
 | Tiny Machine word-piece compiler | 16 / 16 checks pass, including simulated clicks |
 | Small transformer trained **from scratch** on 16,428 verified English → binary pairs | 100% on training examples, **~5%** on new wording, **~5%** on new numbers. It memorised; it did not understand. |
@@ -112,6 +118,8 @@ npm test
 - [x] Structured English v0.1 (calculator)
 - [x] Everyday English → Structured English using Claude, with automatic repair
 - [x] v0.2: letters, decimals and money, several displays, round buttons, a text box with keyboard typing, lists
+- [x] v0.3: timers, saving between visits, random numbers, several screens, moving shapes, arrow keys, a clearer 5×7 font
+- [ ] Safe lab + accuracy scorecard: everyday English → bytes, measured two ways
 - [ ] Build a dataset of everyday English → Structured English pairs
 - [ ] Fine-tune a small open model for that rewriting step, and measure it against the 5% baseline
 - [ ] Output native machine code directly (e.g. a Raspberry Pi calculator)

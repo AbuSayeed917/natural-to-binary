@@ -1,0 +1,39 @@
+# A times table quiz with two screens
+The screen is purple.
+Remember a number called a, a number called b, a number called answer, a number called score, and a number called asked.
+Keep score and asked between visits.
+
+When the app opens:
+  A becomes a random number from 2 to 9.
+  B becomes a random number from 2 to 9.
+
+On the "QUESTION" screen:
+Write "WHAT IS A × B ?" at the top in white.
+A display, labelled "A", shows a in white on black.
+A display, labelled "B", shows b in white on black.
+A display, labelled "YOUR ANSWER", shows answer in yellow on black.
+Buttons, five per row: 1 2 3 4 5 6 7 8 9 0.
+Buttons, two per row: "CLEAR" "CHECK".
+The "CHECK" button is green.
+
+On the "RESULT" screen:
+Write "THE ANSWER WAS" at the top in white.
+A display shows a times b in lime on black.
+A display, labelled "YOU SAID", shows answer in yellow on black.
+A display, labelled "SCORE", shows score in white on black.
+A display, labelled "QUESTIONS", shows asked in white on black.
+Buttons, one per row: "NEXT QUESTION".
+
+When I press a digit:
+  Answer becomes answer times 10 plus the digit.
+When I press "CLEAR":
+  Answer becomes 0.
+When I press "CHECK":
+  If answer is a times b, score becomes score plus 1.
+  Asked becomes asked plus 1.
+  Go to the "RESULT" screen.
+When I press "NEXT QUESTION":
+  A becomes a random number from 2 to 9.
+  B becomes a random number from 2 to 9.
+  Answer becomes 0.
+  Go to the "QUESTION" screen.

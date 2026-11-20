@@ -1,0 +1,29 @@
+# A calculator with decimals
+The screen is charcoal.
+Write "CALCULATOR" at the top in grey.
+A display shows numbers in lime.
+Buttons, four per row: 7 8 9 ÷ 4 5 6 × 1 2 3 − C 0 . +.
+Buttons, one per row: =.
+Remember a number called entry, a number called total, and an operation.
+
+When I press a digit:
+  Type the digit into entry.
+  Show entry.
+
+When I press .:
+  Type a point into entry.
+  Show entry.
+
+When I press an operation:
+  Total becomes entry.
+  Remember the operation.
+  Clear entry.
+
+When I press equals:
+  Apply the operation to total and entry, and put the answer in entry.
+  Show entry.
+
+When I press C:
+  Clear entry.
+  Total becomes 0.
+  Show entry.

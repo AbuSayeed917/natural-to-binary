@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Structured English v0.2</title>
+<title>Structured English v0.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* VOICE: a quiet lab bench; small apps written in plain sentences.
@@ -46,16 +46,16 @@ canvas:focus-visible{outline:3px solid var(--car);outline-offset:3px}
 .ref p{margin:0 0 6px;font-size:15px;color:var(--mute)}.ref code{font-family:Literata,serif;color:var(--car);font-size:15px}
 </style></head><body>
 <div class="band"><div class="wrap">
-<h1>Structured English v0.2: six small apps, no code</h1>
-<p class="lede">Each app below is written only in English sentences. A rule compiler turns them straight into a WebAssembly binary for a 160 × 240 “tiny phone”, which draws every pixel, letter and number itself. Pick an app, use it, then change the sentences and watch it rebuild.</p>
+<h1>Structured English v0.3: ten small apps, no code</h1>
+<p class="lede">Each app below is written only in English sentences. A rule compiler turns them straight into a WebAssembly binary for a 160 × 240 “tiny phone”, which draws every pixel, letter and number itself. Pick an app, use it, then change the sentences and watch it rebuild. New in v0.3: timers, saving between visits, random numbers, several screens, moving shapes and arrow keys, and a clearer font.</p>
 <div class="chips" id="chips"></div>
 <div class="grid">
  <div class="box"><textarea id="src" aria-label="Structured English program" spellcheck="false"></textarea></div>
  <div>
   <div class="phone"><canvas id="cv" width="160" height="240" tabindex="0" aria-label="Tiny phone screen. Click buttons; when focused, you can type."></canvas></div>
   <div class="under">
-   <input id="kb" placeholder="Type here (sends keys to the app)" aria-label="Type keys to send to the app" autocomplete="off">
-   <div class="row"><span class="stat" id="size"></span><button id="reset">Restart app</button></div>
+   <input id="kb" placeholder="Type here, or click the screen and use your keyboard" aria-label="Type keys to send to the app" autocomplete="off">
+   <div class="row"><span class="stat" id="size"></span><button id="reset">Restart app (forgets saved data)</button></div>
    <div class="meter" id="meter"></div>
    <div class="legend"><span><i style="background:var(--car)"></i>from your sentences</span><span><i style="background:var(--pru)"></i>built-in library + font</span></div>
    <div class="msg" id="msg" aria-live="polite"></div>
@@ -68,7 +68,7 @@ canvas:focus-visible{outline:3px solid var(--car);outline-offset:3px}
  <div class="parts" id="parts"></div>
 </div></div>
 <div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
- <h2>Every sentence pattern in v0.2</h2>
+ <h2>Every sentence pattern in v0.3</h2>
  <div class="ref">
   <div><h3>Screen and text</h3><p><code>The screen is charcoal.</code></p><p><code>Write "TIP CALCULATOR" at the top in white.</code></p></div>
   <div><h3>Displays</h3><p><code>A display shows numbers in lime.</code> (set it with <code>Show …</code>)</p><p><code>A display, labelled "TOTAL", shows bill plus tip as money in sky on black.</code> (updates itself)</p></div>
@@ -76,67 +76,81 @@ canvas:focus-visible{outline:3px solid var(--car);outline-offset:3px}
   <div><h3>Memory</h3><p><code>Remember a number called bill, a number called rate starting at 15, and an operation.</code></p><p><code>A text box called task, labelled "NEW TASK".</code> · <code>A list called tasks.</code></p></div>
   <div><h3>Events</h3><p><code>When I press a digit:</code> · <code>an operation</code> · <code>equals</code> · <code>C</code> · <code>.</code> · <code>"ADD"</code> · <code>enter</code></p><p><code>When I click an item in tasks:</code> · <code>When the app opens:</code></p></div>
   <div><h3>Actions</h3><p><code>Type the digit into bill.</code> · <code>Type a point into bill.</code> · <code>Clear bill.</code></p><p><code>Rate becomes 20.</code> · <code>Show entry.</code> · <code>Add task to tasks.</code> · <code>Tick it.</code> · <code>Remove it.</code></p><p><code>If people is more than 1, people becomes people minus 1.</code></p></div>
+  <div><h3>New in v0.3</h3><p><code>Every second:</code> · <code>Every tenth of a second:</code> · <code>Every 5 seconds:</code></p><p><code>Keep tasks between visits.</code> · <code>Die becomes a random number from 1 to 6.</code></p><p><code>On the "RESULT" screen:</code> then its things; <code>Go to the "RESULT" screen.</code></p><p><code>Draw a yellow circle of size 10 at star_x and star_y.</code> (circle, square or bar) · <code>When I press left:</code> (right, up, down, space)</p></div>
   <div><h3>Maths</h3><p>plus, minus, times, divided by, percent, “15 percent of bill”, brackets, decimals like 0.5. Two decimal places; dividing by zero gives 0.</p></div>
  </div>
 </div></div>
 <script>
 {
-// Structured English v0.2 -> WebAssembly binary for a 160x240 "Tiny Phone" machine.
-// The machine provides: memory (screen = 1 byte per pixel, 16 colours), and calls start(), draw(), click(x, y), key(code).
-// Numbers are stored with 2 decimal places (x100), so money and decimals work.
-function compileSE2(text) {
-  const W = 160, H = 240;
-  const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
-  const OP_AT = 39000, DISP_AT = 39100, PLACES_AT = 39500, VARS_AT = 40000, BOX_AT = 41000, LIST_AT = 42000, STR_AT = 50000, FONT_AT = 60000;
-  const BOX_MAX = 18, LIST_MAX = 6, ROW = 16;
+// 5x7 pixel font. Each glyph: 7 rows, 5 bits per row (16 = leftmost pixel).
+const FONT57 = {
+  '0':[14,17,19,21,25,17,14],'1':[4,12,4,4,4,4,14],'2':[14,17,1,2,4,8,31],'3':[31,2,4,2,1,17,14],'4':[2,6,10,18,31,2,2],
+  '5':[31,16,30,1,1,17,14],'6':[6,8,16,30,17,17,14],'7':[31,1,2,4,8,8,8],'8':[14,17,17,14,17,17,14],'9':[14,17,17,15,1,2,12],
+  A:[14,17,17,31,17,17,17],B:[30,17,17,30,17,17,30],C:[14,17,16,16,16,17,14],D:[28,18,17,17,17,18,28],E:[31,16,16,30,16,16,31],
+  F:[31,16,16,30,16,16,16],G:[14,17,16,23,17,17,15],H:[17,17,17,31,17,17,17],I:[14,4,4,4,4,4,14],J:[7,2,2,2,2,18,12],
+  K:[17,18,20,24,20,18,17],L:[16,16,16,16,16,16,31],M:[17,27,21,21,17,17,17],N:[17,17,25,21,19,17,17],O:[14,17,17,17,17,17,14],
+  P:[30,17,17,30,16,16,16],Q:[14,17,17,17,21,18,13],R:[30,17,17,30,20,18,17],S:[15,16,16,14,1,1,30],T:[31,4,4,4,4,4,4],
+  U:[17,17,17,17,17,17,14],V:[17,17,17,17,17,10,4],W:[17,17,17,21,21,21,10],X:[17,17,10,4,10,17,17],Y:[17,17,17,10,4,4,4],Z:[31,1,2,4,8,16,31],
+  '+':[0,4,4,31,4,4,0],'-':[0,0,0,31,0,0,0],'.':[0,0,0,0,0,12,12],'=':[0,0,31,0,31,0,0],'/':[0,1,2,4,8,16,0],'%':[24,25,2,4,8,19,3],
+  ':':[0,12,12,0,12,12,0],',':[0,0,0,0,12,4,8],'!':[4,4,4,4,4,0,4],'?':[14,17,1,2,4,0,4],'(':[2,4,8,8,8,4,2],')':[8,4,2,2,2,4,8],
+  "'":[12,4,8,0,0,0,0],'*':[0,4,21,14,21,4,0],'#':[10,10,31,10,31,10,10],'&':[12,18,20,8,21,18,13],'<':[2,4,8,16,8,4,2],'>':[8,4,2,1,2,4,8],
+  '\x1c':[12,18,18,12,0,0,0], '\x1d':[0,4,0,31,0,4,0], '\x1e':[0,17,10,4,10,17,0], '\x1f':[6,9,8,28,8,8,31]   // °  ÷  ×  £
+};
 
-  // ---- font: 3x5 pixel shapes, indexed by character code ----
-  const SHAPES = {
-    '0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,7,1,7],'4':[5,5,7,1,1],'5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,1,1,1],'8':[7,5,7,5,7],'9':[7,5,7,1,7],
-    A:[2,5,7,5,5],B:[6,5,6,5,6],C:[7,4,4,4,7],D:[6,5,5,5,6],E:[7,4,6,4,7],F:[7,4,6,4,4],G:[7,4,5,5,7],H:[5,5,7,5,5],I:[7,2,2,2,7],J:[1,1,1,5,7],K:[5,5,6,5,5],L:[4,4,4,4,7],M:[5,7,7,5,5],
-    N:[6,5,5,5,5],O:[2,5,5,5,2],P:[6,5,6,4,4],Q:[2,5,5,6,3],R:[6,5,6,5,5],S:[3,4,2,1,6],T:[7,2,2,2,2],U:[5,5,5,5,7],V:[5,5,5,5,2],W:[5,5,7,7,5],X:[5,5,2,5,5],Y:[5,5,2,2,2],Z:[7,1,2,4,7],
-    '+':[0,2,7,2,0],'-':[0,0,7,0,0],'.':[0,0,0,0,2],'=':[0,7,0,7,0],'/':[1,1,2,4,4],'%':[5,1,2,4,5],':':[0,2,0,2,0],',':[0,0,0,2,4],'!':[2,2,2,0,2],'?':[6,1,2,0,2],
-    '(':[1,2,2,2,1],')':[4,2,2,2,4],"'":[2,2,0,0,0],'*':[0,5,2,5,0],'#':[5,7,5,7,5],'&':[2,5,2,5,3],'<':[1,2,4,2,1],'>':[4,2,1,2,4],
-    '\x1d':[2,0,7,0,2], '\x1e':[0,5,2,5,0], '\x1f':[3,4,6,4,7]          // ÷  ×  £
-  };
-  const FONT = new Array(640).fill(0);
-  for (const [ch, rows] of Object.entries(SHAPES)) {
+
+// Structured English v0.3 -> WebAssembly binary for a 160x240 "Tiny Phone".
+// The host machine provides memory (screen = 1 byte per pixel, 16 colours) and calls:
+//   start()  once,  draw()  to repaint,  click(x, y),  key(code),  tick()  ten times a second.
+// Before start(), the host writes a random seed at SEED_AT. To keep data between visits, the host saves the `keep` memory regions.
+// Numbers are stored with 2 decimal places (x100) as 64-bit integers, so money and decimals work.
+function compileSE3(text, font) {
+  const FONTDATA = font || (typeof FONT57 !== 'undefined' ? FONT57 : null);
+  if (!FONTDATA) throw new Error('compileSE3 needs the 5x7 font (font57.js)');
+  const W = 160, H = 240, GW = 6, GH = 7;
+  const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
+  const SEED_AT = 38900, TICK_AT = 38904, SCREEN_AT = 38908, OP_AT = 39000, DISP_AT = 39100, PLACES_AT = 39500, VARS_AT = 40000, BOX_AT = 41000, LIST_AT = 42000, STR_AT = 50000, FONT_AT = 60000;
+  const BOX_MAX = 18, LIST_MAX = 6, ROW = 18;
+  const KEY = { left: 17, up: 18, right: 19, down: 20, space: 32, enter: 13 };
+
+  const FONT = new Array(128 * GH).fill(0);
+  for (const [ch, rows] of Object.entries(FONTDATA)) {
     const codes = [ch.charCodeAt(0)]; if (/[A-Z]/.test(ch)) codes.push(ch.toLowerCase().charCodeAt(0));
-    for (const code of codes) rows.forEach((r, i) => FONT[code * 5 + i] = r);
+    for (const code of codes) rows.forEach((r, i) => FONT[code * GH + i] = r);
   }
-  const toCodes = s => [...s.toUpperCase()].map(ch => ch === '÷' ? 0x1d : ch === '×' ? 0x1e : ch === '£' ? 0x1f : ch === '−' ? 45 : ch.charCodeAt(0) < 128 ? ch.charCodeAt(0) : 63);
+  const toCodes = s => [...s.toUpperCase()].map(ch => ch === '°' ? 0x1c : ch === '÷' ? 0x1d : ch === '×' ? 0x1e : ch === '£' ? 0x1f : ch === '−' ? 45 : ch.charCodeAt(0) < 128 ? ch.charCodeAt(0) : 63);
+  const textW = (s, sc) => toCodes(s).length * GW * sc - sc;
 
   // ---- byte helpers ----
   const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
   const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
   const c = n => [0x41, ...sleb(n)], C = n => [0x42, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
-  const I = { add:0x6a, sub:0x6b, mul:0x6c, divs:0x6d, divu:0x6e, remu:0x70, and:0x71, or:0x72, shru:0x76, eqz:0x45, eq:0x46, ne:0x47, lt:0x48, ltu:0x49, gt:0x4a, le:0x4c, ge:0x4e };
-  const L = { add:0x7c, sub:0x7d, mul:0x7e, divs:0x7f, rems:0x81, eqz:0x50, eq:0x51, ne:0x52, lt:0x53, gt:0x55, le:0x57, ge:0x59, wrap:0xa7, ext:0xac };
+  const I = { add:0x6a, sub:0x6b, mul:0x6c, divs:0x6d, divu:0x6e, remu:0x70, and:0x71, or:0x72, xor:0x73, shl:0x74, shru:0x76, eqz:0x45, eq:0x46, ne:0x47, lt:0x48, ltu:0x49, gt:0x4a, le:0x4c, ge:0x4e };
+  const L = { add:0x7c, sub:0x7d, mul:0x7e, divs:0x7f, rems:0x81, eqz:0x50, eq:0x51, ne:0x52, lt:0x53, gt:0x55, le:0x57, ge:0x59, wrap:0xa7, ext:0xac, extu:0xad };
   const LD8 = [0x2d, 0, 0], ST8 = [0x3a, 0, 0], LD32 = [0x28, 2, 0], ST32 = [0x36, 2, 0], LD64 = [0x29, 3, 0], ST64 = [0x37, 3, 0];
   const COPY = [0xfc, 0x0a, 0, 0];
   const IF = [0x04, 0x40], IF64 = [0x04, 0x7e], ELSE = 0x05, END = 0x0b, RET = 0x0f;
   const until = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
-  const F = { start:0, draw:1, click:2, key:3, rect:4, glyph:5, text:6, num:7, circle:8, mul:9, div:10, tdigit:11, tpoint:12, boxkey:13, listadd:14, listdraw:15, listclick:16 };
+  const F = { start:0, draw:1, click:2, key:3, tick:4, rect:5, glyph:6, text:7, num:8, circle:9, mul:10, div:11, tdigit:12, tpoint:13, boxkey:14, listadd:15, listdraw:16, listclick:17, rand:18 };
 
-  // ---- built-in library (the same bytes in every program) ----
+  // ---- built-in library (the same bytes in every app) ----
   const lib = {};
-  lib.rect = [[2,0x7f]], lib.rect.code = [...g(1), ...st(5),
+  lib.rect = [[2,0x7f]], lib.rect.code = [...g(1), ...st(5),                          // rect(x, y, w, h, colour)
     ...until([...g(5), ...g(1), ...g(3), I.add, I.ge], [...g(0), ...st(6),
       ...until([...g(6), ...g(0), ...g(2), I.add, I.ge], [...g(6), ...c(W), I.ltu, ...g(5), ...c(H), I.ltu, I.and, ...IF,
         ...g(5), ...c(W), I.mul, ...g(6), I.add, ...g(4), ...ST8, END, ...g(6), ...c(1), I.add, ...st(6)]),
       ...g(5), ...c(1), I.add, ...st(5)])];
-  lib.glyph = [[3,0x7f]], lib.glyph.code = [...c(0), ...st(5),
-    ...until([...g(5), ...c(5), I.ge], [...c(FONT_AT), ...g(0), ...c(5), I.mul, I.add, ...g(5), I.add, ...LD8, ...st(7), ...c(0), ...st(6),
-      ...until([...g(6), ...c(3), I.ge], [...g(7), ...c(4), ...g(6), I.shru, I.and, ...IF,
+  lib.glyph = [[3,0x7f]], lib.glyph.code = [...c(0), ...st(5),                       // glyph(code, x, y, colour, scale)
+    ...until([...g(5), ...c(GH), I.ge], [...c(FONT_AT), ...g(0), ...c(GH), I.mul, I.add, ...g(5), I.add, ...LD8, ...st(7), ...c(0), ...st(6),
+      ...until([...g(6), ...c(5), I.ge], [...g(7), ...c(16), ...g(6), I.shru, I.and, ...IF,
           ...g(1), ...g(6), ...g(4), I.mul, I.add, ...g(2), ...g(5), ...g(4), I.mul, I.add, ...g(4), ...g(4), ...g(3), ...call(F.rect), END,
         ...g(6), ...c(1), I.add, ...st(6)]),
       ...g(5), ...c(1), I.add, ...st(5)])];
-  lib.text = [[1,0x7f]], lib.text.code = [...c(0), ...st(6),               // text(addr, len, x, y, colour, scale)
-    ...until([...g(6), ...g(1), I.ge], [...g(0), ...g(6), I.add, ...LD8, ...g(2), ...g(6), ...c(4), ...g(5), I.mul, I.mul, I.add,
+  lib.text = [[1,0x7f]], lib.text.code = [...c(0), ...st(6),                         // text(addr, len, x, y, colour, scale)
+    ...until([...g(6), ...g(1), I.ge], [...g(0), ...g(6), I.add, ...LD8, ...g(2), ...g(6), ...c(GW), ...g(5), I.mul, I.mul, I.add,
       ...g(3), ...g(4), ...g(5), ...call(F.glyph), ...g(6), ...c(1), I.add, ...st(6)])];
   const drawCh = codeBytes => [...g(7), ...g(10), I.sub, ...st(7), ...codeBytes, ...g(7), ...g(2), ...g(3), ...g(4), ...call(F.glyph)];
-  lib.num = [[2,0x7f],[1,0x7e],[2,0x7f]], lib.num.code = [               // num(value i64, right x, y, colour, scale, money); locals neg6 x7 ip8(i64) fr9 adv10
-    ...g(4), ...c(4), I.mul, ...st(10),
+  lib.num = [[2,0x7f],[1,0x7e],[2,0x7f]], lib.num.code = [                           // num(value, right x, y, colour, scale, money)
+    ...g(4), ...c(GW), I.mul, ...st(10),
     ...g(0), ...C(0), L.lt, ...st(6), ...g(6), ...IF, ...C(0), ...g(0), L.sub, ...st(0), END,
     ...g(1), ...st(7), ...g(0), ...C(100), L.rems, L.wrap, ...st(9), ...g(0), ...C(100), L.divs, ...st(8),
     ...g(5), ...IF, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), ...drawCh(c(46)),
@@ -145,7 +159,7 @@ function compileSE2(text) {
       ...drawCh(c(46)), END, END,
     0x03, 0x40, ...drawCh([...g(8), ...C(10), L.rems, L.wrap, ...c(48), I.add]), ...g(8), ...C(10), L.divs, ...st(8), ...g(8), L.eqz, I.eqz, 0x0d, 0, END,
     ...g(5), ...IF, ...drawCh(c(0x1f)), END, ...g(6), ...IF, ...drawCh(c(45)), END];
-  lib.circle = [[2,0x7f]], lib.circle.code = [...c(0), ...g(2), I.sub, ...st(4),   // circle(cx, cy, r, colour)
+  lib.circle = [[2,0x7f]], lib.circle.code = [...c(0), ...g(2), I.sub, ...st(4),    // circle(cx, cy, r, colour)
     ...until([...g(4), ...g(2), I.gt], [...c(0), ...g(2), I.sub, ...st(5),
       ...until([...g(5), ...g(2), I.gt], [...g(5), ...g(5), I.mul, ...g(4), ...g(4), I.mul, I.add, ...g(2), ...g(2), I.mul, I.le, ...IF,
         ...g(0), ...g(5), I.add, ...g(1), ...g(4), I.add, ...c(1), ...c(1), ...g(3), ...call(F.rect), END, ...g(5), ...c(1), I.add, ...st(5)]),
@@ -154,84 +168,104 @@ function compileSE2(text) {
   lib.mul = [[1,0x7e]], lib.mul.code = [...g(0), ...g(1), L.mul, ...st(2), ...round(2, 50), ...C(100), L.divs];
   lib.div = [[1,0x7e]], lib.div.code = [...g(1), L.eqz, ...IF, ...C(0), RET, END, ...g(0), ...C(1000), L.mul, ...g(1), L.divs, ...st(2), ...round(2, 5), ...C(10), L.divs];
   const vAddr = [...c(VARS_AT), ...g(0), ...c(8), I.mul, I.add], pAddr = [...c(PLACES_AT), ...g(0), ...c(4), I.mul, I.add];
-  lib.tdigit = [[1,0x7f]], lib.tdigit.code = [...pAddr, ...LD32, ...st(2),     // tdigit(var, digit)
+  lib.tdigit = [[1,0x7f]], lib.tdigit.code = [...pAddr, ...LD32, ...st(2),
     ...g(2), I.eqz, ...IF, ...vAddr, ...vAddr, ...LD64, ...C(10), L.mul, ...g(1), L.ext, ...C(100), L.mul, L.add, ...ST64,
     ELSE, ...g(2), ...c(1), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, ...C(10), L.mul, L.add, ...ST64, ...pAddr, ...c(2), ...ST32,
     ELSE, ...g(2), ...c(2), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, L.add, ...ST64, ...pAddr, ...c(3), ...ST32, END, END, END];
   lib.tpoint = [], lib.tpoint.code = [...pAddr, ...LD32, I.eqz, ...IF, ...pAddr, ...c(1), ...ST32, END];
-  lib.boxkey = [[1,0x7f]], lib.boxkey.code = [...g(0), ...LD8, ...st(2),        // boxkey(box, code)
+  lib.boxkey = [[1,0x7f]], lib.boxkey.code = [...g(0), ...LD8, ...st(2),
     ...g(1), ...c(8), I.eq, ...IF, ...g(2), ...IF, ...g(0), ...g(2), ...c(1), I.sub, ...ST8, END, RET, END,
     ...g(1), ...c(97), I.ge, ...g(1), ...c(122), I.le, I.and, ...IF, ...g(1), ...c(32), I.sub, ...st(1), END,
     ...g(1), ...c(32), I.ge, ...g(1), ...c(127), I.lt, I.and, ...g(2), ...c(BOX_MAX), I.lt, I.and, ...IF,
       ...g(0), ...c(1), I.add, ...g(2), I.add, ...g(1), ...ST8, ...g(0), ...g(2), ...c(1), I.add, ...ST8, END];
-  lib.listadd = [[2,0x7f]], lib.listadd.code = [...g(0), ...LD8, ...st(2),      // listadd(list, box); locals count2 item3
+  lib.listadd = [[2,0x7f]], lib.listadd.code = [...g(0), ...LD8, ...st(2),
     ...g(2), ...c(LIST_MAX), I.lt, ...g(1), ...LD8, ...c(0), I.gt, I.and, ...IF,
       ...g(0), ...c(4), I.add, ...g(2), ...c(20), I.mul, I.add, ...st(3),
       ...g(3), ...g(1), ...LD8, ...ST8, ...g(3), ...c(1), I.add, ...c(0), ...ST8,
       ...g(3), ...c(2), I.add, ...g(1), ...c(1), I.add, ...c(BOX_MAX), ...COPY,
       ...g(0), ...g(2), ...c(1), I.add, ...ST8, ...g(1), ...c(0), ...ST8, END];
-  lib.listdraw = [[4,0x7f]], lib.listdraw.code = [...g(0), ...LD8, ...st(5), ...c(0), ...st(3),   // listdraw(list, y, colour); locals i3 item4 count5 yy6
+  lib.listdraw = [[4,0x7f]], lib.listdraw.code = [...g(0), ...LD8, ...st(5), ...c(0), ...st(3),
     ...until([...g(3), ...g(5), I.ge], [
       ...g(0), ...c(4), I.add, ...g(3), ...c(20), I.mul, I.add, ...st(4), ...g(1), ...g(3), ...c(ROW), I.mul, I.add, ...st(6),
-      ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(1), ...call(F.rect),
+      ...c(6), ...g(6), ...c(2), I.add, ...c(12), ...c(12), ...c(1), ...call(F.rect),
       ...g(4), ...c(1), I.add, ...LD8, ...IF,
-        ...c(6), ...g(6), ...c(2), I.add, ...c(10), ...c(10), ...c(3), ...call(F.rect),
-        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...c(8), ...c(2), ...call(F.text),
-        ...c(22), ...g(6), ...c(7), I.add, ...g(4), ...LD8, ...c(8), I.mul, ...c(2), ...c(8), ...call(F.rect),
-      ELSE, ...c(7), ...g(6), ...c(3), I.add, ...c(8), ...c(8), ...c(0), ...call(F.rect),
-        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(22), ...g(6), ...c(3), I.add, ...g(2), ...c(2), ...call(F.text), END,
+        ...c(6), ...g(6), ...c(2), I.add, ...c(12), ...c(12), ...c(3), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(24), ...g(6), ...c(3), I.add, ...c(8), ...c(1), ...call(F.text),
+        ...c(24), ...g(6), ...c(6), I.add, ...g(4), ...LD8, ...c(GW), I.mul, ...c(1), ...c(8), ...call(F.rect),
+      ELSE, ...c(7), ...g(6), ...c(3), I.add, ...c(10), ...c(10), ...c(0), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(24), ...g(6), ...c(3), I.add, ...g(2), ...c(1), ...call(F.text), END,
       ...g(3), ...c(1), I.add, ...st(3)])];
-  lib.listclick = [[2,0x7f]], lib.listclick.code = [...g(0), ...LD8, ...st(3),   // listclick(list, index, action); locals item3? count3 item4
+  lib.listclick = [[2,0x7f]], lib.listclick.code = [...g(0), ...LD8, ...st(3),
     ...g(1), ...c(0), I.lt, ...g(1), ...g(3), I.ge, I.or, ...IF, RET, END,
     ...g(0), ...c(4), I.add, ...g(1), ...c(20), I.mul, I.add, ...st(4),
     ...g(2), ...c(1), I.eq, ...IF, ...g(4), ...c(1), I.add, ...c(1), ...g(4), ...c(1), I.add, ...LD8, I.sub, ...ST8,
     ELSE, ...g(4), ...g(4), ...c(20), I.add, ...g(3), ...c(1), I.sub, ...g(1), I.sub, ...c(20), I.mul, ...COPY, ...g(0), ...g(3), ...c(1), I.sub, ...ST8, END];
+  lib.rand = [[3,0x7f]], lib.rand.code = [                                            // rand(lo, hi) -> whole number between, as x100
+    ...c(SEED_AT), ...LD32, ...st(2), ...g(2), I.eqz, ...IF, ...c(0x2545F49), ...st(2), END,
+    ...g(2), ...g(2), ...c(13), I.shl, I.xor, ...st(2), ...g(2), ...g(2), ...c(17), I.shru, I.xor, ...st(2), ...g(2), ...g(2), ...c(5), I.shl, I.xor, ...st(2),
+    ...c(SEED_AT), ...g(2), ...ST32,
+    ...g(0), ...C(100), L.divs, L.wrap, ...st(3), ...g(1), ...C(100), L.divs, L.wrap, ...g(3), I.sub, ...c(1), I.add, ...st(4),
+    ...g(4), ...c(1), I.lt, ...IF, ...c(1), ...st(4), END,
+    ...g(2), ...c(1), I.shru, ...g(4), I.remu, ...g(3), I.add, L.ext, ...C(100), L.mul];
 
   // ---- read the sentences ----
-  const P = { bg: 14, titles: [], displays: [], box: null, list: null, groups: [], round: false, ink: 1, vars: {}, init: {}, hasOp: false, events: [], colours: { digit: 8, op: 5, '=': 3, C: 9, '.': 8, word: 4 }, named: {} };
+  const newScreen = name => ({ name, titles: [], displays: [], groups: [], draws: [], box: null, list: null });
+  const P = { bg: 14, screens: [newScreen('MAIN')], round: false, ink: 1, vars: {}, init: {}, hasOp: false, events: [], keep: [], allDisplays: [],
+    colours: { digit: 8, op: 5, '=': 3, C: 9, '.': 8, word: 4 }, named: {}, box: null, list: null };
+  let S = P.screens[0], usedMain = false;
   const colourOf = w => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know (try: ${Object.keys(COLOURS).slice(0, 8).join(', ')}…)`); return COLOURS[w]; };
   const LABEL = { plus:'+', add:'+', '+':'+', minus:'-', '-':'-', '−':'-', times:'×', '×':'×', x:'×', '*':'×', divide:'÷', '÷':'÷', '/':'÷', equals:'=', '=':'=', c:'C', clear:'C', '.':'.', point:'.', dot:'.' };
   const OPCODE = { '+':1, '-':2, '×':3, '÷':4 };
-  const quoted = s => [...s.matchAll(/"([^"]*)"|“([^”]*)”/g)].map(m => (m[1] ?? m[2]).toUpperCase());
+  const quoted = s => [...s.matchAll(/"([^"]*)"/g)].map(m => m[1].toUpperCase());
   const labelOf = w => { if (/^\d$/.test(w)) return w; if (LABEL[w]) return LABEL[w]; return null; };
   let ev = null;
   const raw = text.replace(/[“”]/g, '"');
   const lines = raw.split('\n').flatMap((ln, n) => ln.split(/(?<=\.)\s+(?=[A-Z])/)
-      .flatMap(p => /^\s*when\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
+      .flatMap(p => /^\s*(when|every|on the)\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
       .map(p => { const t = p.trim().toLowerCase(); return { n: n + 1, raw: p.trim(), s: (t.endsWith(':') ? t.slice(0, -1) : t.replace(/[.;!]$/, '')).trim() }; }))
     .filter(l => l.s && !l.s.startsWith('#'));
-
   const varIndex = name => { if (!(name in P.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return P.vars[name]; };
+  const SHAPE = { circle: 'circle', dot: 'circle', ball: 'circle', square: 'square', box: 'square', block: 'square', bar: 'bar', paddle: 'bar' };
+
   for (const l of lines) {
     const s = l.s, q = quoted(l.raw); let m;
     try {
+      if ((m = s.match(/^on the "[^"]*" screen$/))) {
+        const name = q[0]; let sc = P.screens.find(x => x.name === name);
+        if (!sc) { if (P.screens.length === 1 && !usedMain && P.screens[0].name === 'MAIN') { P.screens[0].name = name; sc = P.screens[0]; } else { sc = newScreen(name); P.screens.push(sc); } }
+        S = sc; ev = null; continue;
+      }
       if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { P.bg = colourOf(m[1]); ev = null; continue; }
-      if ((m = s.match(/^write "[^"]*" at the top(?: in (\w+))?$/))) { P.titles.push({ text: q[0], colour: m[1] ? colourOf(m[1]) : 1 }); ev = null; continue; }
+      if ((m = s.match(/^write "[^"]*" at the top(?: in (\w+))?$/))) { S.titles.push({ text: q[0], colour: m[1] ? colourOf(m[1]) : 1 }); usedMain = true; ev = null; continue; }
       if ((m = s.match(/^(?:there is )?a display(?: called (\w+))?(?: at the top)?(?:,? labelled "[^"]*",?)? shows (.+?)(?: as (money))? in (\w+)(?: on (\w+))?$/))) {
         const what = m[2]; const stored = /^(numbers|money)$/.test(what);
-        P.displays.push({ name: m[1] || null, label: /labelled/.test(s) ? q[0] : null, stored, expr: stored ? null : what, money: m[3] === 'money' || what === 'money', ink: colourOf(m[4]), back: m[5] ? colourOf(m[5]) : 0, idx: P.displays.length });
-        ev = null; continue;
+        const d = { name: m[1] || null, label: /labelled/.test(s) ? q[0] : null, stored, expr: stored ? null : what, money: m[3] === 'money' || what === 'money', ink: colourOf(m[4]), back: m[5] ? colourOf(m[5]) : 0, idx: P.allDisplays.length };
+        S.displays.push(d); P.allDisplays.push(d); usedMain = true; ev = null; continue;
       }
-      if ((m = s.match(/^a text box called (\w+)(?:,? labelled "[^"]*")?$/))) { if (P.box) throw new Error('Only one text box for now'); P.box = { name: m[1], label: /labelled/.test(s) ? q[0] : null }; P.named[m[1]] = 'box'; ev = null; continue; }
-      if ((m = s.match(/^a list called (\w+)$/))) { if (P.list) throw new Error('Only one list for now'); P.list = { name: m[1] }; P.named[m[1]] = 'list'; ev = null; continue; }
+      if ((m = s.match(/^a text box called (\w+)(?:,? labelled "[^"]*")?$/))) { if (P.box) throw new Error('Only one text box for now'); P.box = S.box = { name: m[1], label: /labelled/.test(s) ? q[0] : null, screen: S }; P.named[m[1]] = 'box'; usedMain = true; ev = null; continue; }
+      if ((m = s.match(/^a list called (\w+)$/))) { if (P.list) throw new Error('Only one list for now'); P.list = S.list = { name: m[1], screen: S }; P.named[m[1]] = 'list'; usedMain = true; ev = null; continue; }
       if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
         const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
         const per = m[1] ? (words[m[1]] || parseInt(m[1], 10) || 4) : 4;
-        const labels = []; const src = m[2];
-        for (const tok of src.match(/"[^"]*"|\S+/g)) {
+        const labels = [];
+        for (const tok of m[2].match(/"[^"]*"|\S+/g)) {
           if (tok.startsWith('"')) { labels.push(tok.slice(1, -1).toUpperCase()); continue; }
           const t = tok.replace(/,$/, ''); const lab = labelOf(t);
           if (lab) labels.push(lab); else if (/^[a-z][a-z%]*$/.test(t)) labels.push(t.toUpperCase()); else if (t) throw new Error(`I can't make a button from “${t}”. Put words in quotes, like "ADD".`);
         }
-        P.groups.push({ per: Math.min(per, labels.length) || 1, labels }); ev = null; continue;
+        S.groups.push({ per: Math.min(per, labels.length) || 1, labels }); usedMain = true; ev = null; continue;
+      }
+      if ((m = s.match(/^draw an? (?:(\w+) )?(\w+)(?: of size (\d+))? at (.+?) and (.+)$/)) && (SHAPE[m[2]])) {
+        S.draws.push({ colour: m[1] ? colourOf(m[1]) : 1, shape: SHAPE[m[2]], size: m[3] ? +m[3] : 8, x: m[4], y: m[5], line: l }); usedMain = true; ev = null; continue;
       }
       if (/^the buttons are round$/.test(s)) { P.round = true; continue; }
       if ((m = s.match(/^the (?:(digit|operation|equals|clear|c|word|point|=|\.) )?buttons? (?:are|is) (\w+)$/))) {
         const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C', word: 'word', point: '.', '.': '.' }[m[1]] || 'all';
-        const col = colourOf(m[2]); if (k === 'all') for (const key in P.colours) P.colours[key] = col; else P.colours[k] = col; continue;
+        const col = colourOf(m[2]); if (k === 'all') for (const key in P.colours) if (!key.startsWith('w:')) P.colours[key] = col; else; else P.colours[k] = col; continue;
       }
       if ((m = s.match(/^the "([^"]*)" button is (\w+)$/))) { P.colours['w:' + m[1].toUpperCase()] = colourOf(m[2]); continue; }
       if ((m = s.match(/^the labels are (\w+)$/))) { P.ink = colourOf(m[1]); continue; }
+      if ((m = s.match(/^(?:keep|save) (.+?) between visits$/))) { P.keep.push(...m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)); continue; }
       if ((m = s.match(/^remember (.+)$/)) && !ev) {
         for (const part of m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)) {
           let k;
@@ -241,33 +275,43 @@ function compileSE2(text) {
         }
         continue;
       }
-      if ((m = s.match(/^when (?:i press|i type|i click on) (.+)$/))) {
-        const what = m[1]; let labels;
-        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
-        else if (/^an? operation$/.test(what)) labels = ['+', '-', '×', '÷'];
-        else if (/^(the )?enter( key)?$/.test(what)) labels = ['ENTER'];
-        else if (q.length) labels = [q[0]];
-        else if (labelOf(what)) labels = [labelOf(what)];
-        else labels = [what.toUpperCase()];
-        ev = { kind: 'press', labels, actions: [], line: l }; P.events.push(ev); continue;
+      if ((m = s.match(/^every (second|tenth of a second|half (?:a )?second|(\d+) seconds)$/))) {
+        const every = m[2] ? +m[2] * 10 : m[1] === 'second' ? 10 : m[1].startsWith('half') ? 5 : 1;
+        ev = { kind: 'tick', every, labels: [], actions: [], line: l }; P.events.push(ev); continue;
       }
       if ((m = s.match(/^when i (?:click|tap|press) an item in (\w+)$/))) {
         if (!P.list || P.list.name !== m[1]) throw new Error(`There's no list called “${m[1]}”`);
         ev = { kind: 'item', labels: [], actions: [], line: l }; P.events.push(ev); continue;
       }
       if ((m = s.match(/^when the app (?:opens|starts)$/))) { ev = { kind: 'start', labels: [], actions: [], line: l }; P.events.push(ev); continue; }
+      if ((m = s.match(/^when (?:i press|i type|i click on|i tap) (.+)$/))) {
+        const what = m[1].replace(/^the /, '').replace(/ (?:arrow|key)$/, ''); let labels;
+        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
+        else if (/^an? operation$/.test(what)) labels = ['+', '-', '×', '÷'];
+        else if (KEY[what] && !q.length) labels = ['KEY:' + what];
+        else if (q.length) labels = [q[0]];
+        else if (labelOf(what)) labels = [labelOf(what)];
+        else labels = [what.toUpperCase()];
+        ev = { kind: 'press', labels, actions: [], line: l }; P.events.push(ev); continue;
+      }
       if (ev) { ev.actions.push({ s, l }); continue; }
       throw new Error('I don\'t know this kind of sentence');
     } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
   }
-  if (!P.groups.length && !P.displays.length && !P.box) throw new Error('Describe a display, a text box or some buttons to start.');
+  if (!P.screens.some(x => x.groups.length || x.displays.length || x.box || x.draws.length || x.titles.length)) throw new Error('Describe a display, a text box, a drawing or some buttons to start.');
 
   // ---- expressions: numbers with 2 decimals (i64, x100) ----
   function expr(src, ctx) {
     const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').replace(/([()])/g, ' $1 ').trim().split(/\s+/);
     let i = 0;
     const atom = () => {
-      let w = t[i++]; if (w === 'the') w = t[i++];
+      let w = t[i++];
+      if (w === 'a' && t[i] === 'random') {
+        i++; if (t[i] === 'number') i++; if (t[i] === 'from' || t[i] === 'between') i++; else throw new Error('write it as “a random number from 1 to 6”');
+        const lo = post(); if (t[i] !== 'to' && t[i] !== 'and') throw new Error('write it as “a random number from 1 to 6”'); i++;
+        const hi = post(); return [...lo, ...hi, ...call(F.rand)];
+      }
+      if (w === 'the') w = t[i++];
       if (w === undefined) throw new Error('the sentence ends too early');
       if (w === '(') { const e = add(); if (t[i++] !== ')') throw new Error('missing a closing bracket'); return e; }
       if (/^-?\d+(\.\d+)?$/.test(w)) return C(Math.round(parseFloat(w) * 100));
@@ -281,19 +325,21 @@ function compileSE2(text) {
     if (i < t.length) throw new Error(`I don't understand “${t.slice(i).join(' ')}”`);
     return out;
   }
+  const pixel = (src) => [...expr(src, {}), ...C(100), L.divs, L.wrap];
   const COND = [['is more than', L.gt], ['is greater than', L.gt], ['is bigger than', L.gt], ['is less than', L.lt], ['is smaller than', L.lt], ['is at least', L.ge], ['is at most', L.le], ['is not', L.ne], ['is', L.eq]];
   function cond(src, ctx) { for (const [w, op] of COND) { const k = src.indexOf(' ' + w + ' '); if (k > 0) return [...expr(src.slice(0, k), ctx), ...expr(src.slice(k + w.length + 2), ctx), op]; } throw new Error(`I can't read the condition “${src}” (try “x is more than 1”)`); }
   const setVar = (name, val) => { const v = varIndex(name); return [...c(VARS_AT + 8 * v), ...val, ...ST64, ...c(PLACES_AT + 4 * v), ...c(0), ...ST32]; };
-  const storedDisplays = () => P.displays.filter(d => d.stored);
+  const screenIndex = name => { const k = P.screens.findIndex(x => x.name === name); if (k < 0) throw new Error(`There's no screen called “${name}”. Add “On the "${name}" screen:”`); return k; };
 
-  function action(s, ctx) {
+  function action(s, ctx, raw) {
     let m;
-    if ((m = s.match(/^if (.+?), (.+)$/))) return [...cond(m[1], ctx), ...IF, ...action(m[2], ctx), END];
+    if ((m = s.match(/^if (.+?), (.+)$/))) return [...cond(m[1], ctx), ...IF, ...action(m[2], ctx, raw), END];
+    if ((m = s.match(/^go to the "?([^"]+?)"? screen$/))) { const name = (quoted(raw)[0] || m[1]).toUpperCase(); return [...c(SCREEN_AT), ...c(screenIndex(name)), ...ST32]; }
     if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], ctx));
     if ((m = s.match(/^type the digit into (\w+)$/))) { if (ctx.digit === undefined) throw new Error('“Type the digit” only works in “When I press a digit”'); return [...c(varIndex(m[1])), ...c(ctx.digit), ...call(F.tdigit)]; }
     if ((m = s.match(/^type a (?:point|dot|decimal point) into (\w+)$/))) return [...c(varIndex(m[1])), ...call(F.tpoint)];
     if ((m = s.match(/^show (.+?)(?: on (\w+))?$/))) {
-      const ds = storedDisplays(); let d;
+      const ds = P.allDisplays.filter(d => d.stored); let d;
       if (m[2]) { d = ds.find(x => x.name === m[2]); if (!d) throw new Error(`There's no display called “${m[2]}” that shows numbers or money`); }
       else { if (ds.length !== 1) throw new Error(ds.length ? 'Say which display: “Show x on name.”' : 'Add a display that “shows numbers” first'); d = ds[0]; }
       return [...c(DISP_AT + 8 * d.idx), ...expr(m[1], ctx), ...ST64];
@@ -316,92 +362,129 @@ function compileSE2(text) {
     if (/^(remove|delete) it$/.test(s)) { if (!ctx.item) throw new Error('“Remove it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(2), ...call(F.listclick)]; }
     throw new Error('I don\'t know this action');
   }
-  const runActions = (e, ctx) => e.actions.flatMap(a => { try { return action(a.s, ctx); } catch (err) { throw new Error(`Line ${a.l.n}, “${a.l.raw}”: ${err.message}`); } });
+  const runActions = (e, ctx) => e.actions.flatMap(a => { try { return action(a.s, ctx, a.l.raw); } catch (err) { throw new Error(`Line ${a.l.n}, “${a.l.raw}”: ${err.message}`); } });
 
-  // ---- layout, top to bottom ----
-  let y = 6; const layout = { titles: [], displays: [], buttons: [] };
-  for (const t of P.titles) { const sc = t.text.length * 8 <= 152 ? 2 : 1; layout.titles.push({ ...t, sc, x: Math.max(4, (W - t.text.length * 4 * sc) >> 1), y }); y += sc * 5 + 6; }
-  const big = P.displays.length === 1 && !P.box && !P.list;
-  for (const d of P.displays) {
-    const sc = big ? 3 : 2, h = big ? 30 : 20; let ly = null;
-    if (d.label) { ly = y; y += 8; }
-    layout.displays.push({ ...d, ly, y, h, sc }); y += h + 6;
-  }
-  if (P.box) { if (P.box.label) { P.box.ly = y; y += 8; } P.box.y = y; y += 22; }
-  if (P.list) { P.list.y = y; y += LIST_MAX * ROW + 4; }
-  const rows = P.groups.reduce((n, gp) => n + Math.ceil(gp.labels.length / gp.per), 0);
-  if (rows) {
-    const bh = Math.min(40, Math.floor((H - 4 - y - (rows - 1) * 4) / rows));
-    if (bh < 14) throw new Error('There are too many things to fit on the screen. Try fewer buttons or displays.');
-    for (const gp of P.groups) {
-      const bw = Math.floor((152 - (gp.per - 1) * 4) / gp.per);
-      gp.labels.forEach((lab, i) => { if (i && i % gp.per === 0) y += bh + 4; layout.buttons.push({ lab, x: 4 + (i % gp.per) * (bw + 4), y, w: bw, h: bh }); });
-      y += bh + 4;
+  // ---- layout per screen: things from the top, buttons from the bottom ----
+  const big = sc => sc.displays.length === 1 && !sc.box && !sc.list;
+  for (const sc of P.screens) {
+    let y = 6; sc.lay = { titles: [], displays: [], buttons: [] };
+    for (const t of sc.titles) { const s2 = textW(t.text, 2) <= 152 ? 2 : 1; sc.lay.titles.push({ ...t, sc: s2, x: Math.max(4, (W - textW(t.text, s2)) >> 1), y }); y += s2 * GH + 6; }
+    for (const d of sc.displays) {
+      const s2 = big(sc) ? 3 : 2, h = big(sc) ? 32 : 22; let ly = null;
+      if (d.label) { ly = y; y += 9; }
+      sc.lay.displays.push({ ...d, ly, y, h, sc: s2 }); y += h + 6;
+    }
+    if (sc.box) { if (sc.box.label) { sc.box.ly = y; y += 9; } sc.box.y = y; y += 24; }
+    if (sc.list) { sc.list.y = y; y += LIST_MAX * ROW + 4; }
+    sc.topEnd = y;
+    const rows = sc.groups.reduce((n, gp) => n + Math.ceil(gp.labels.length / gp.per), 0);
+    if (rows) {
+      const room = H - 4 - y, bh = Math.min(40, Math.floor((room - (rows - 1) * 4) / rows));
+      if (bh < 16) throw new Error(`There are too many things to fit on the${P.screens.length > 1 ? ' "' + sc.name + '"' : ''} screen. Try fewer buttons or displays, or another screen.`);
+      let by = H - 4 - rows * bh - (rows - 1) * 4;
+      for (const gp of sc.groups) {
+        const bw = Math.floor((152 - (gp.per - 1) * 4) / gp.per);
+        gp.labels.forEach((lab, i) => { if (i && i % gp.per === 0) by += bh + 4; sc.lay.buttons.push({ lab, x: 4 + (i % gp.per) * (bw + 4), y: by, w: bw, h: bh }); });
+        by += bh + 4;
+      }
     }
   }
+  const allButtons = P.screens.flatMap(sc => sc.lay.buttons);
   const kindOf = lab => /^\d$/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab === '=' ? '=' : lab === 'C' ? 'C' : lab === '.' ? '.' : 'word';
-  for (const e of P.events) if (e.kind === 'press') for (const lab of e.labels) if (e.labels.length === 1 && lab !== 'ENTER' && !layout.buttons.some(b => b.lab === lab)) throw new Error(`Line ${e.line.n}: there's no ${lab} button to press. Add it to a “Buttons:” list.`);
+  for (const e of P.events) if (e.kind === 'press') for (const lab of e.labels) if (e.labels.length === 1 && lab !== 'ENTER' && !lab.startsWith('KEY:') && !allButtons.some(b => b.lab === lab)) throw new Error(`Line ${e.line.n}: there's no ${lab} button to press. Add it to a “Buttons:” list.`);
 
   // ---- strings go into memory once ----
   const strs = []; let strPtr = STR_AT; const strAt = s => { const codes = toCodes(s); const at = strPtr; strs.push({ at, codes }); strPtr += codes.length; return { at, len: codes.length }; };
   const textCall = (s, x, yy, col, sc) => { const r = strAt(s); return [...c(r.at), ...c(r.len), ...c(x), ...c(yy), ...c(col), ...c(sc), ...call(F.text)]; };
 
   // ---- the program's own parts ----
-  const parts = [];
+  const parts = []; const multi = P.screens.length > 1;
+  const onScreen = (k, code) => multi ? [...c(SCREEN_AT), ...LD32, ...c(k), I.eq, ...IF, ...code, END] : code;
   const startBody = [...Object.entries(P.init).flatMap(([n, v]) => [...c(VARS_AT + 8 * P.vars[n]), ...C(v), ...ST64]), ...P.events.filter(e => e.kind === 'start').flatMap(e => runActions(e, {}))];
-  parts.push({ label: 'Start: set starting values', bytes: startBody });
+  parts.push({ label: 'Start: starting values and “When the app opens”', bytes: startBody });
   const draw = [...c(0), ...c(0), ...c(W), ...c(H), ...c(P.bg), ...call(F.rect)];
   parts.push({ label: 'Paint the screen', bytes: draw.slice() });
-  for (const t of layout.titles) { const b = textCall(t.text, t.x, t.y, t.colour, t.sc); draw.push(...b); parts.push({ label: `Write “${t.text}”`, bytes: b }); }
-  for (const d of layout.displays) {
-    const b = [];
-    if (d.label) b.push(...textCall(d.label, 6, d.ly, 1, 1));
-    b.push(...c(4), ...c(d.y), ...c(152), ...c(d.h), ...c(d.back), ...call(F.rect));
-    b.push(...(d.stored ? [...c(DISP_AT + 8 * d.idx), ...LD64] : expr(d.expr, {})), ...c(150), ...c(d.y + ((d.h - 5 * d.sc) >> 1)), ...c(d.ink), ...c(d.sc), ...c(d.money ? 1 : 0), ...call(F.num));
-    draw.push(...b); parts.push({ label: `Display${d.label ? ' “' + d.label + '”' : ''}${d.stored ? '' : ': ' + d.expr}`, bytes: b });
-  }
-  if (P.box) {
-    const b = [];
-    if (P.box.label) b.push(...textCall(P.box.label, 6, P.box.ly, 1, 1));
-    b.push(...c(4), ...c(P.box.y), ...c(152), ...c(18), ...c(0), ...call(F.rect), ...c(BOX_AT + 1), ...c(BOX_AT), ...LD8, ...c(8), ...c(P.box.y + 4), ...c(1), ...c(2), ...call(F.text),
-      ...c(BOX_AT), ...LD8, ...c(8), I.mul, ...c(8), I.add, ...c(P.box.y + 3), ...c(2), ...c(12), ...c(10), ...call(F.rect));
-    draw.push(...b); parts.push({ label: `Text box “${P.box.name}”`, bytes: b });
-  }
-  if (P.list) { const b = [...c(LIST_AT), ...c(P.list.y), ...c(1), ...call(F.listdraw)]; draw.push(...b); parts.push({ label: `List “${P.list.name}”`, bytes: b }); }
-  for (const bt of layout.buttons) {
-    const k = kindOf(bt.lab), col = P.colours['w:' + bt.lab] ?? P.colours[k] ?? 8, b = [];
-    if (P.round) { const r = (Math.min(bt.w, bt.h) >> 1) - 1; b.push(...c(bt.x + (bt.w >> 1)), ...c(bt.y + (bt.h >> 1)), ...c(r), ...c(col), ...call(F.circle)); }
-    else b.push(...c(bt.x), ...c(bt.y), ...c(bt.w), ...c(bt.h), ...c(col), ...call(F.rect));
-    const len = toCodes(bt.lab).length, sc = len * 8 <= bt.w - 4 && !(P.round && len * 8 > Math.min(bt.w, bt.h) - 6) ? 2 : 1;
-    b.push(...textCall(bt.lab, bt.x + ((bt.w - len * 4 * sc) >> 1), bt.y + ((bt.h - 5 * sc) >> 1), P.ink, sc));
-    draw.push(...b); parts.push({ label: `Button ${bt.lab}`, bytes: b });
-  }
   const pressActs = lab => P.events.filter(e => e.kind === 'press' && e.labels.includes(lab)).flatMap(e => runActions(e, { label: lab, digit: /^\d$/.test(lab) ? +lab : undefined }));
   const click = [];
-  for (const bt of layout.buttons) {
-    const acts = pressActs(bt.lab); if (!acts.length) continue;
-    const b = [...g(0), ...c(bt.x), I.ge, ...g(0), ...c(bt.x + bt.w), I.lt, I.and, ...g(1), ...c(bt.y), I.ge, I.and, ...g(1), ...c(bt.y + bt.h), I.lt, I.and, ...IF, ...acts, RET, END];
-    click.push(...b); parts.push({ label: `When ${bt.lab} is pressed`, bytes: b });
-  }
-  const itemEv = P.events.filter(e => e.kind === 'item');
-  if (itemEv.length) {
-    const b = [...g(1), ...c(P.list.y), I.ge, ...g(1), ...c(P.list.y + LIST_MAX * ROW), I.lt, I.and, ...IF,
-      ...g(1), ...c(P.list.y), I.sub, ...c(ROW), I.divs, ...st(2), ...itemEv.flatMap(e => runActions(e, { item: true })), RET, END];
-    click.push(...b); parts.push({ label: `When an item in “${P.list.name}” is clicked`, bytes: b });
-  }
-  // keyboard: Enter, typing into the text box, and keys that match buttons
+  P.screens.forEach((sc, k) => {
+    const d = [], tag = multi ? ` (“${sc.name}” screen)` : '';
+    for (const t of sc.lay.titles) { const b = textCall(t.text, t.x, t.y, t.colour, t.sc); d.push(...b); parts.push({ label: `Write “${t.text}”${tag}`, bytes: b }); }
+    for (const dp of sc.lay.displays) {
+      const b = [];
+      if (dp.label) b.push(...textCall(dp.label, 6, dp.ly, 1, 1));
+      b.push(...c(4), ...c(dp.y), ...c(152), ...c(dp.h), ...c(dp.back), ...call(F.rect));
+      b.push(...(dp.stored ? [...c(DISP_AT + 8 * dp.idx), ...LD64] : expr(dp.expr, {})), ...c(152), ...c(dp.y + ((dp.h - GH * dp.sc) >> 1)), ...c(dp.ink), ...c(dp.sc), ...c(dp.money ? 1 : 0), ...call(F.num));
+      d.push(...b); parts.push({ label: `Display${dp.label ? ' “' + dp.label + '”' : ''}${dp.stored ? '' : ': ' + dp.expr}${tag}`, bytes: b });
+    }
+    if (sc.box) {
+      const b = [];
+      if (sc.box.label) b.push(...textCall(sc.box.label, 6, sc.box.ly, 1, 1));
+      b.push(...c(4), ...c(sc.box.y), ...c(152), ...c(20), ...c(0), ...call(F.rect), ...c(BOX_AT + 1), ...c(BOX_AT), ...LD8, ...c(8), ...c(sc.box.y + 3), ...c(1), ...c(2), ...call(F.text),
+        ...c(BOX_AT), ...LD8, ...c(GW * 2), I.mul, ...c(8), I.add, ...c(sc.box.y + 3), ...c(2), ...c(14), ...c(10), ...call(F.rect));
+      d.push(...b); parts.push({ label: `Text box “${sc.box.name}”${tag}`, bytes: b });
+    }
+    if (sc.list) { const b = [...c(LIST_AT), ...c(sc.list.y), ...c(1), ...call(F.listdraw)]; d.push(...b); parts.push({ label: `List “${sc.list.name}”${tag}`, bytes: b }); }
+    for (const bt of sc.lay.buttons) {
+      const kd = kindOf(bt.lab), col = P.colours['w:' + bt.lab] ?? P.colours[kd] ?? 8, b = [];
+      if (P.round) { const r = (Math.min(bt.w, bt.h) >> 1) - 1; b.push(...c(bt.x + (bt.w >> 1)), ...c(bt.y + (bt.h >> 1)), ...c(r), ...c(col), ...call(F.circle)); }
+      else b.push(...c(bt.x), ...c(bt.y), ...c(bt.w), ...c(bt.h), ...c(col), ...call(F.rect));
+      const room = P.round ? Math.min(bt.w, bt.h) - 8 : bt.w - 6, s2 = textW(bt.lab, 2) <= room ? 2 : 1;
+      b.push(...textCall(bt.lab, bt.x + ((bt.w - textW(bt.lab, s2)) >> 1), bt.y + ((bt.h - GH * s2) >> 1), P.ink, s2));
+      d.push(...b); parts.push({ label: `Button ${bt.lab}${tag}`, bytes: b });
+    }
+    for (const dr of sc.draws) {
+      const b = []; let xy;
+      try { xy = [pixel(dr.x), pixel(dr.y)]; } catch (err) { throw new Error(`Line ${dr.line.n}, “${dr.line.raw}”: ${err.message}`); }
+      const half = dr.size >> 1;
+      if (dr.shape === 'circle') b.push(...xy[0], ...xy[1], ...c(half), ...c(dr.colour), ...call(F.circle));
+      else if (dr.shape === 'square') b.push(...xy[0], ...c(half), I.sub, ...xy[1], ...c(half), I.sub, ...c(dr.size), ...c(dr.size), ...c(dr.colour), ...call(F.rect));
+      else b.push(...xy[0], ...c(dr.size * 3 >> 1), I.sub, ...xy[1], ...c(half), I.sub, ...c(dr.size * 3), ...c(dr.size), ...c(dr.colour), ...call(F.rect));
+      d.push(...b); parts.push({ label: `Draw a ${dr.shape} at ${dr.x}, ${dr.y}${tag}`, bytes: b });
+    }
+    draw.push(...onScreen(k, d));
+    const cl = [];
+    for (const bt of sc.lay.buttons) {
+      const acts = pressActs(bt.lab); if (!acts.length) continue;
+      const b = [...g(0), ...c(bt.x), I.ge, ...g(0), ...c(bt.x + bt.w), I.lt, I.and, ...g(1), ...c(bt.y), I.ge, I.and, ...g(1), ...c(bt.y + bt.h), I.lt, I.and, ...IF, ...acts, RET, END];
+      cl.push(...b); parts.push({ label: `When ${bt.lab} is pressed${tag}`, bytes: b });
+    }
+    const itemEv = P.events.filter(e => e.kind === 'item');
+    if (itemEv.length && sc.list) {
+      const b = [...g(1), ...c(sc.list.y), I.ge, ...g(1), ...c(sc.list.y + LIST_MAX * ROW), I.lt, I.and, ...IF,
+        ...g(1), ...c(sc.list.y), I.sub, ...c(ROW), I.divs, ...st(2), ...itemEv.flatMap(e => runActions(e, { item: true })), RET, END];
+      cl.push(...b); parts.push({ label: `When an item in “${sc.list.name}” is clicked`, bytes: b });
+    }
+    click.push(...onScreen(k, cl));
+  });
+  // keyboard: arrows/space/enter events, typing into the text box, keys that match buttons
   const KEYS = { '+':[43], '-':[45], '×':[42,120], '÷':[47], '=':[61], '.':[46,44], 'C':[27,99] };
   const key = [];
+  for (const [name, code] of Object.entries(KEY)) { const a = pressActs('KEY:' + name); if (a.length) key.push(...g(0), ...c(code), I.eq, ...IF, ...a, RET, END); }
   const enterActs = pressActs('ENTER');
   if (enterActs.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...enterActs, RET, END);
-  else if (layout.buttons.some(b => b.lab === '=')) { const a = pressActs('='); if (a.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...a, RET, END); }
-  if (P.box) key.push(...c(BOX_AT), ...g(0), ...call(F.boxkey), RET);
-  else for (const bt of layout.buttons) {
-    const codes = /^\d$/.test(bt.lab) ? [48 + +bt.lab] : KEYS[bt.lab]; if (!codes) continue;
-    const a = pressActs(bt.lab); if (!a.length) continue;
-    for (const kc of codes) key.push(...g(0), ...c(kc), I.eq, ...IF, ...a, RET, END);
-  }
-  if (key.length) parts.push({ label: 'Keyboard: Enter, typing and button shortcuts', bytes: key });
+  P.screens.forEach((sc, k) => {
+    const kk = [];
+    if (!enterActs.length && !pressActs('KEY:enter').length && sc.lay.buttons.some(b => b.lab === '=')) { const a = pressActs('='); if (a.length) kk.push(...g(0), ...c(13), I.eq, ...IF, ...a, RET, END); }
+    if (sc.box) kk.push(...c(BOX_AT), ...g(0), ...call(F.boxkey), RET);
+    else for (const bt of sc.lay.buttons) {
+      const codes = /^\d$/.test(bt.lab) ? [48 + +bt.lab] : KEYS[bt.lab]; if (!codes) continue;
+      const a = pressActs(bt.lab); if (!a.length) continue;
+      for (const kc of codes) kk.push(...g(0), ...c(kc), I.eq, ...IF, ...a, RET, END);
+    }
+    key.push(...onScreen(k, kk));
+  });
+  if (key.length) parts.push({ label: 'Keyboard: arrows, Enter, typing and button shortcuts', bytes: key });
+  const tickEv = P.events.filter(e => e.kind === 'tick');
+  const tick = [...c(TICK_AT), ...c(TICK_AT), ...LD32, ...c(1), I.add, ...ST32];
+  for (const e of tickEv) { const a = runActions(e, {}); tick.push(...(e.every === 1 ? a : [...c(TICK_AT), ...LD32, ...c(e.every), I.remu, I.eqz, ...IF, ...a, END])); }
+  if (tickEv.length) parts.push({ label: 'Timers: “Every …”', bytes: tick.slice(10) });
+
+  // ---- what the host should keep between visits ----
+  const keep = P.keep.map(n => {
+    if (P.named[n] === 'list') return { name: n, at: LIST_AT, len: 4 + LIST_MAX * 20 };
+    if (P.named[n] === 'box') return { name: n, at: BOX_AT, len: 1 + BOX_MAX };
+    const v = varIndex(n); return { name: n, at: VARS_AT + 8 * v, len: 8 };
+  });
 
   // ---- assemble the module ----
   const sec = (id, b) => [id, ...uleb(b.length), ...b];
@@ -409,24 +492,26 @@ function compileSE2(text) {
   const T = (params, results = []) => [0x60, params.length, ...params, results.length, ...results];
   const i32 = 0x7f, i64 = 0x7e;
   const types = [T([]), T([i32, i32]), T([i32]), T([i32, i32, i32, i32, i32]), T([i32, i32, i32, i32, i32, i32]), T([i64, i32, i32, i32, i32, i32]), T([i32, i32, i32, i32]), T([i64, i64], [i64]), T([i32, i32, i32])];
-  const fnTypes = [0, 0, 1, 2, 3, 3, 4, 5, 6, 7, 7, 1, 2, 1, 1, 8, 8];
+  const fnTypes = [0, 0, 1, 2, 0, 3, 3, 4, 5, 6, 7, 7, 1, 2, 1, 1, 8, 8, 7];
   const body = (locals, code) => { const decl = [locals.length, ...locals.flatMap(([n, t]) => [n, t])]; const b = [...decl, ...code, END]; return [...uleb(b.length), ...b]; };
-  const bodies = [body([], startBody), body([], draw), body([[1, i32]], click), body([], key),
+  const bodies = [body([], startBody), body([], draw), body([[1, i32]], click), body([], key), body([], tick),
     body(lib.rect, lib.rect.code), body(lib.glyph, lib.glyph.code), body(lib.text, lib.text.code), body(lib.num, lib.num.code), body(lib.circle, lib.circle.code),
     body(lib.mul, lib.mul.code), body(lib.div, lib.div.code), body(lib.tdigit, lib.tdigit.code), body(lib.tpoint, lib.tpoint.code), body(lib.boxkey, lib.boxkey.code),
-    body(lib.listadd, lib.listadd.code), body(lib.listdraw, lib.listdraw.code), body(lib.listclick, lib.listclick.code)];
+    body(lib.listadd, lib.listadd.code), body(lib.listdraw, lib.listdraw.code), body(lib.listclick, lib.listclick.code), body(lib.rand, lib.rand.code)];
   const segs = [{ at: FONT_AT, codes: FONT }, ...strs];
   const bytes = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
     ...sec(1, [types.length, ...types.flat()]), ...sec(3, [fnTypes.length, ...fnTypes]), ...sec(5, [1, 0, 1]),
-    ...sec(7, [5, ...nm('memory'), 2, 0, ...nm('start'), 0, 0, ...nm('draw'), 0, 1, ...nm('click'), 0, 2, ...nm('key'), 0, 3]),
+    ...sec(7, [6, ...nm('memory'), 2, 0, ...nm('start'), 0, 0, ...nm('draw'), 0, 1, ...nm('click'), 0, 2, ...nm('key'), 0, 3, ...nm('tick'), 0, 4]),
     ...sec(10, [bodies.length, ...bodies.flat()]),
     ...sec(11, [segs.length, ...segs.flatMap(s => [0, ...c(s.at), END, ...uleb(s.codes.length), ...s.codes])])]);
-  const libBytes = bodies.slice(4).reduce((n, b) => n + b.length, 0) + FONT.length;
-  return { bytes, parts, layout, list: P.list, box: P.box, width: W, height: H, sizes: { total: bytes.length, yours: bodies.slice(0, 4).reduce((n, b) => n + b.length, 0), library: libBytes }, memory: { VARS_AT, DISP_AT, BOX_AT, LIST_AT }, vars: P.vars };
+  const libBytes = bodies.slice(5).reduce((n, b) => n + b.length, 0) + FONT.length;
+  return { bytes, parts, screens: P.screens.map(sc => ({ name: sc.name, buttons: sc.lay.buttons, list: sc.list, box: sc.box })), layout: { buttons: allButtons }, list: P.list, box: P.box,
+    keep, usesTimer: tickEv.length > 0, width: W, height: H, sizes: { total: bytes.length, yours: bodies.slice(0, 5).reduce((n, b) => n + b.length, 0), library: libBytes },
+    memory: { SEED_AT, TICK_AT, SCREEN_AT, VARS_AT, DISP_AT, BOX_AT, LIST_AT }, vars: P.vars, KEY };
 }
 
 
-const PROGS = {"Calculator": "# A calculator with decimals\nThe screen is charcoal.\nWrite \"CALCULATOR\" at the top in grey.\nA display shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 . +.\nButtons, one per row: =.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Type the digit into entry.\n  Show entry.\n\nWhen I press .:\n  Type a point into entry.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Clear entry.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Clear entry.\n  Total becomes 0.\n  Show entry.\n", "Tip calculator": "# A tip calculator\nThe screen is charcoal.\nWrite \"TIP CALCULATOR\" at the top in white.\nRemember a number called bill, and a number called rate starting at 15.\nA display, labelled \"BILL\", shows bill as money in lime.\nA display, labelled \"TIP\", shows rate percent of bill as money in yellow.\nA display, labelled \"TOTAL\", shows bill plus rate percent of bill as money in sky.\nButtons, three per row: \"10%\" \"15%\" \"20%\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\nThe word buttons are purple.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"10%\":\n  Rate becomes 10.\nWhen I press \"15%\":\n  Rate becomes 15.\nWhen I press \"20%\":\n  Rate becomes 20.\n", "Bill splitter": "# Split a bill between friends\nThe screen is teal.\nWrite \"SPLIT THE BILL\" at the top in white.\nRemember a number called bill, and a number called people starting at 2.\nA display, labelled \"BILL\", shows bill as money in white on black.\nA display, labelled \"PEOPLE\", shows people in white on black.\nA display, labelled \"EACH PAYS\", shows bill divided by people as money in yellow on black.\nButtons, two per row: \"FEWER\" \"MORE\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"MORE\":\n  People becomes people plus 1.\nWhen I press \"FEWER\":\n  If people is more than 1, people becomes people minus 1.\n", "To-do list": "# A to-do list\nThe screen is charcoal.\nWrite \"MY TO DO LIST\" at the top in yellow.\nA text box called task, labelled \"NEW TASK (TYPE IT)\".\nA list called tasks.\nButtons, two per row: \"ADD\" \"CLEAR ALL\".\nThe \"CLEAR ALL\" button is salmon.\n\nWhen I press \"ADD\":\n  Add task to tasks.\nWhen I press enter:\n  Add task to tasks.\nWhen I press \"CLEAR ALL\":\n  Clear tasks.\nWhen I click an item in tasks:\n  Tick it.\n", "Counter": "# A counter with round buttons\nThe screen is purple.\nWrite \"COUNTER\" at the top in white.\nRemember a number called count.\nA display shows count in white on black.\nButtons, three per row: \u2212 \"RESET\" +.\nThe buttons are round.\nThe operation buttons are pink.\nThe \"RESET\" button is grey.\n\nWhen I press +:\n  Count becomes count plus 1.\nWhen I press \u2212:\n  If count is more than 0, count becomes count minus 1.\nWhen I press \"RESET\":\n  Count becomes 0.\n", "\u00b0C to \u00b0F": "# Celsius to Fahrenheit\nThe screen is blue.\nWrite \"C TO F\" at the top in white.\nRemember a number called celsius.\nA display, labelled \"CELSIUS\", shows celsius in white on black.\nA display, labelled \"FAHRENHEIT\", shows celsius times 9 divided by 5 plus 32 in yellow on black.\nButtons, four per row: 7 8 9 C 4 5 6 \u2212 1 2 3 0.\nThe buttons are sky.\nThe C buttons are salmon.\n\nWhen I press a digit:\n  Type the digit into celsius.\nWhen I press \u2212:\n  Celsius becomes 0 minus celsius.\nWhen I press C:\n  Clear celsius.\n"};
+const PROGS = {"Calculator": "# A calculator with decimals\nThe screen is charcoal.\nWrite \"CALCULATOR\" at the top in grey.\nA display shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 . +.\nButtons, one per row: =.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Type the digit into entry.\n  Show entry.\n\nWhen I press .:\n  Type a point into entry.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Clear entry.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Clear entry.\n  Total becomes 0.\n  Show entry.\n", "Tip calculator": "# A tip calculator\nThe screen is charcoal.\nWrite \"TIP CALCULATOR\" at the top in white.\nRemember a number called bill, and a number called rate starting at 15.\nA display, labelled \"BILL\", shows bill as money in lime.\nA display, labelled \"TIP\", shows rate percent of bill as money in yellow.\nA display, labelled \"TOTAL\", shows bill plus rate percent of bill as money in sky.\nButtons, three per row: \"10%\" \"15%\" \"20%\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\nThe word buttons are purple.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"10%\":\n  Rate becomes 10.\nWhen I press \"15%\":\n  Rate becomes 15.\nWhen I press \"20%\":\n  Rate becomes 20.\n", "Bill splitter": "# Split a bill between friends\nThe screen is teal.\nWrite \"SPLIT THE BILL\" at the top in white.\nRemember a number called bill, and a number called people starting at 2.\nA display, labelled \"BILL\", shows bill as money in white on black.\nA display, labelled \"PEOPLE\", shows people in white on black.\nA display, labelled \"EACH PAYS\", shows bill divided by people as money in yellow on black.\nButtons, two per row: \"FEWER\" \"MORE\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"MORE\":\n  People becomes people plus 1.\nWhen I press \"FEWER\":\n  If people is more than 1, people becomes people minus 1.\n", "To-do list": "# A to-do list\nThe screen is charcoal.\nWrite \"MY TO DO LIST\" at the top in yellow.\nA text box called task, labelled \"NEW TASK (TYPE IT)\".\nA list called tasks.\nKeep tasks between visits.\nButtons, two per row: \"ADD\" \"CLEAR ALL\".\nThe \"CLEAR ALL\" button is salmon.\n\nWhen I press \"ADD\":\n  Add task to tasks.\nWhen I press enter:\n  Add task to tasks.\nWhen I press \"CLEAR ALL\":\n  Clear tasks.\nWhen I click an item in tasks:\n  Tick it.\n", "Stopwatch": "# A stopwatch\nThe screen is charcoal.\nWrite \"STOPWATCH\" at the top in white.\nRemember a number called time, and a number called running.\nA display shows time in lime.\nButtons, two per row: \"START\" \"STOP\".\nButtons, one per row: \"RESET\".\nThe \"START\" button is green.\nThe \"STOP\" button is salmon.\n\nEvery tenth of a second:\n  If running is 1, time becomes time plus 0.1.\nWhen I press \"START\":\n  Running becomes 1.\nWhen I press \"STOP\":\n  Running becomes 0.\nWhen I press \"RESET\":\n  Running becomes 0.\n  Time becomes 0.\n", "Dice": "# A dice roller\nThe screen is green.\nWrite \"DICE ROLLER\" at the top in white.\nRemember a number called die starting at 1, a number called total, and a number called rolls.\nA display, labelled \"YOU ROLLED\", shows die in white on black.\nA display, labelled \"ROLLS\", shows rolls in sky on black.\nA display, labelled \"TOTAL\", shows total in yellow on black.\nButtons, one per row: \"ROLL\".\nButtons, one per row: \"START AGAIN\".\nThe \"START AGAIN\" button is grey.\n\nWhen I press \"ROLL\":\n  Die becomes a random number from 1 to 6.\n  Total becomes total plus die.\n  Rolls becomes rolls plus 1.\nWhen I press space:\n  Die becomes a random number from 1 to 6.\n  Total becomes total plus die.\n  Rolls becomes rolls plus 1.\nWhen I press \"START AGAIN\":\n  Total becomes 0.\n  Rolls becomes 0.\n", "Times table quiz": "# A times table quiz with two screens\nThe screen is purple.\nRemember a number called a, a number called b, a number called answer, a number called score, and a number called asked.\nKeep score and asked between visits.\n\nWhen the app opens:\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n\nOn the \"QUESTION\" screen:\nWrite \"WHAT IS A \u00d7 B ?\" at the top in white.\nA display, labelled \"A\", shows a in white on black.\nA display, labelled \"B\", shows b in white on black.\nA display, labelled \"YOUR ANSWER\", shows answer in yellow on black.\nButtons, five per row: 1 2 3 4 5 6 7 8 9 0.\nButtons, two per row: \"CLEAR\" \"CHECK\".\nThe \"CHECK\" button is green.\n\nOn the \"RESULT\" screen:\nWrite \"THE ANSWER WAS\" at the top in white.\nA display shows a times b in lime on black.\nA display, labelled \"YOU SAID\", shows answer in yellow on black.\nA display, labelled \"SCORE\", shows score in white on black.\nA display, labelled \"QUESTIONS\", shows asked in white on black.\nButtons, one per row: \"NEXT QUESTION\".\n\nWhen I press a digit:\n  Answer becomes answer times 10 plus the digit.\nWhen I press \"CLEAR\":\n  Answer becomes 0.\nWhen I press \"CHECK\":\n  If answer is a times b, score becomes score plus 1.\n  Asked becomes asked plus 1.\n  Go to the \"RESULT\" screen.\nWhen I press \"NEXT QUESTION\":\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n  Answer becomes 0.\n  Go to the \"QUESTION\" screen.\n", "Catch the star": "# A small game: catch the falling star\nThe screen is black.\nWrite \"CATCH THE STAR\" at the top in yellow.\nRemember a number called basket starting at 80, a number called star_x starting at 40, a number called star_y starting at 40.\nRemember a number called score, and a number called missed.\nA display, labelled \"CAUGHT\", shows score in white on charcoal.\nDraw a yellow circle of size 10 at star_x and star_y.\nDraw a sky bar of size 8 at basket and 184.\nButtons, two per row: \"LEFT\" \"RIGHT\".\n\nEvery tenth of a second:\n  Star_y becomes star_y plus 5.\n  If star_y is at least 180, if star_x is at least basket minus 16, if star_x is at most basket plus 16, score becomes score plus 1.\n  If star_y is at least 180, star_x becomes a random number from 10 to 150.\n  If star_y is at least 180, star_y becomes 45.\nWhen I press \"LEFT\":\n  If basket is more than 16, basket becomes basket minus 12.\nWhen I press \"RIGHT\":\n  If basket is less than 144, basket becomes basket plus 12.\nWhen I press left:\n  If basket is more than 16, basket becomes basket minus 12.\nWhen I press right:\n  If basket is less than 144, basket becomes basket plus 12.\n", "Counter": "# A counter with round buttons\nThe screen is purple.\nWrite \"COUNTER\" at the top in white.\nRemember a number called count.\nA display shows count in white on black.\nButtons, three per row: \u2212 \"RESET\" +.\nThe buttons are round.\nThe operation buttons are pink.\nThe \"RESET\" button is grey.\n\nWhen I press +:\n  Count becomes count plus 1.\nWhen I press \u2212:\n  If count is more than 0, count becomes count minus 1.\nWhen I press \"RESET\":\n  Count becomes 0.\n", "\u00b0C to \u00b0F": "# Celsius to Fahrenheit\nThe screen is blue.\nWrite \"\u00b0C TO \u00b0F\" at the top in white.\nRemember a number called celsius.\nA display, labelled \"CELSIUS\", shows celsius in white on black.\nA display, labelled \"FAHRENHEIT\", shows celsius times 9 divided by 5 plus 32 in yellow on black.\nButtons, four per row: 7 8 9 C 4 5 6 \u2212 1 2 3 0.\nThe buttons are sky.\nThe C buttons are salmon.\n\nWhen I press a digit:\n  Type the digit into celsius.\nWhen I press \u2212:\n  Celsius becomes 0 minus celsius.\nWhen I press C:\n  Clear celsius.\n"};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const hex = a => Array.from(a, b => b.toString(16).padStart(2, '0')).join(' ');
@@ -434,31 +519,45 @@ const PAL = ['#000000','#ffffff','#e03131','#2f9e44','#1c7ed6','#f59f00','#ae3ec
 const rgb = PAL.map(h => [1,3,5].map(i => parseInt(h.slice(i, i + 2), 16)));
 const cv = $('cv'), ctx = cv.getContext('2d'), img = ctx.createImageData(160, 240);
 let app = null, last = null, current = Object.keys(PROGS)[0];
-let edits = {}; try { edits = JSON.parse(localStorage.getItem('se2-edits') || '{}'); } catch (e) {}
+let edits = {}; try { edits = JSON.parse(localStorage.getItem('se3-edits') || '{}'); } catch (e) {}
 function paint() { if (!app) return; app.draw(); const m = new Uint8Array(app.memory.buffer); for (let i = 0; i < 38400; i++) { const [r, g, b] = rgb[m[i] & 15]; img.data[i*4] = r; img.data[i*4+1] = g; img.data[i*4+2] = b; img.data[i*4+3] = 255; } ctx.putImageData(img, 0, 0); }
-async function boot(bytes) { const { instance } = await WebAssembly.instantiate(bytes); app = instance.exports; app.start(); paint(); }
+let timer = null, keepKey = '', keepList = [];
+const hash = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = (h * 33 + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+function saveKept() { if (!app || !keepList.length) return; const m = new Uint8Array(app.memory.buffer); const o = {}; for (const k of keepList) o[k.name] = Array.from(m.slice(k.at, k.at + k.len)); try { localStorage.setItem(keepKey, JSON.stringify(o)); } catch (e) {} }
+async function boot(bytes, r, fresh) {
+  clearInterval(timer);
+  const { instance } = await WebAssembly.instantiate(bytes); app = instance.exports;
+  new DataView(app.memory.buffer).setUint32(r.memory.SEED_AT, (crypto.getRandomValues(new Uint32Array(1))[0] | 1) >>> 0, true);
+  app.start();
+  keepList = r.keep; keepKey = 'se3-keep-' + hash($('src').value);
+  if (keepList.length && !fresh) { try { const o = JSON.parse(localStorage.getItem(keepKey) || 'null'); if (o) { const m = new Uint8Array(app.memory.buffer); for (const k of keepList) if (o[k.name]) m.set(o[k.name], k.at); } } catch (e) {} }
+  if (r.usesTimer) timer = setInterval(() => { try { app.tick(); } catch (e) {} paint(); }, 100);
+  paint();
+}
 async function build() {
-  const text = $('src').value; edits[current] = text; try { localStorage.setItem('se2-edits', JSON.stringify(edits)); } catch (e) {}
-  let r; try { r = compileSE2(text); } catch (e) { $('msg').textContent = e.message; return; }
+  const text = $('src').value; edits[current] = text; try { localStorage.setItem('se3-edits', JSON.stringify(edits)); } catch (e) {}
+  let r; try { r = compileSE3(text); } catch (e) { $('msg').textContent = e.message; return; }
   $('msg').textContent = ''; last = r;
   $('size').textContent = r.sizes.total.toLocaleString() + ' bytes';
   const other = r.sizes.total - r.sizes.yours - r.sizes.library;
   $('meter').innerHTML = `<span style="width:${r.sizes.yours / r.sizes.total * 100}%;background:var(--car)"></span><span style="width:${r.sizes.library / r.sizes.total * 100}%;background:var(--pru)"></span><span style="width:${other / r.sizes.total * 100}%;background:var(--mute)"></span>`;
   $('parts').innerHTML = r.parts.filter(p => p.bytes.length).map(p => `<div class="p"><div class="l">${esc(p.label)} <span style="color:var(--mute);font-size:13px">(${p.bytes.length} bytes)</span></div><div class="hx">${hex(p.bytes)}</div></div>`).join('')
-    + `<div class="p"><div class="l" style="color:var(--mute);font-style:italic">Built-in library: rectangles, circles, letters, numbers with decimals, typing, lists, plus a font of ${'0-9 A-Z + − × ÷ = . % £'} (${r.sizes.library.toLocaleString()} bytes, the same in every app)</div><div class="hx" style="border-color:var(--line);color:var(--mute)">Included automatically: your sentences use it without describing it.</div></div>`;
-  try { await boot(r.bytes); } catch (e) { $('msg').textContent = 'The machine rejected the bytes: ' + e.message; }
+    + `<div class="p"><div class="l" style="color:var(--mute);font-style:italic">Built-in library: rectangles, circles, letters, numbers with decimals, typing, lists, random numbers, plus a 5×7 font of ${'0-9 A-Z + − × ÷ = . % £ °'} (${r.sizes.library.toLocaleString()} bytes, the same in every app)</div><div class="hx" style="border-color:var(--line);color:var(--mute)">Included automatically: your sentences use it without describing it.</div></div>`;
+  try { await boot(r.bytes, r); } catch (e) { $('msg').textContent = 'The machine rejected the bytes: ' + e.message; }
 }
 function pick(name) { current = name; $('src').value = edits[name] ?? PROGS[name]; document.querySelectorAll('#chips button').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === name)); build(); }
 $('chips').innerHTML = Object.keys(PROGS).map(n => `<button data-n="${esc(n)}">${esc(n)}</button>`).join('') + '<button data-reset="1">Undo my edits</button>';
 $('chips').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; if (b.dataset.reset) { delete edits[current]; pick(current); } else pick(b.dataset.n); });
 let t; $('src').addEventListener('input', () => { clearTimeout(t); t = setTimeout(build, 300); });
-$('reset').addEventListener('click', () => { if (last) boot(last.bytes); });
-cv.addEventListener('click', ev => { if (!app) return; const r = cv.getBoundingClientRect(); try { app.click(Math.floor((ev.clientX - r.left) / r.width * 160), Math.floor((ev.clientY - r.top) / r.height * 240)); } catch (e) {} paint(); });
-const sendKey = code => { if (!app) return; try { app.key(code); } catch (e) {} paint(); };
-const codeOf = k => k === 'Enter' ? 13 : k === 'Backspace' ? 8 : k === 'Escape' ? 27 : k.length === 1 ? k.charCodeAt(0) : null;
+$('reset').addEventListener('click', () => { if (last) { try { localStorage.removeItem(keepKey); } catch (e) {} boot(last.bytes, last, true); } });
+cv.addEventListener('click', ev => { if (!app) return; const r = cv.getBoundingClientRect(); try { app.click(Math.floor((ev.clientX - r.left) / r.width * 160), Math.floor((ev.clientY - r.top) / r.height * 240)); } catch (e) {} paint(); saveKept(); cv.focus(); });
+const sendKey = code => { if (!app) return; try { app.key(code); } catch (e) {} paint(); saveKept(); };
+const ARROWS = { ArrowLeft: 17, ArrowUp: 18, ArrowRight: 19, ArrowDown: 20 };
+const codeOf = k => k === 'Enter' ? 13 : k === 'Backspace' ? 8 : k === 'Escape' ? 27 : ARROWS[k] ?? (k.length === 1 ? k.charCodeAt(0) : null);
 cv.addEventListener('keydown', ev => { const c = codeOf(ev.key); if (c !== null) { ev.preventDefault(); sendKey(c); } });
-$('kb').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === 'Backspace') { ev.preventDefault(); sendKey(codeOf(ev.key)); } });
+$('kb').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === 'Backspace' || ARROWS[ev.key]) { ev.preventDefault(); sendKey(codeOf(ev.key)); } });
 $('kb').addEventListener('input', ev => { for (const ch of $('kb').value) sendKey(ch.charCodeAt(0)); $('kb').value = ''; });
+window.tinyPhone = { get app() { return app; } };
 pick(current);
 }
 </script></body></html>

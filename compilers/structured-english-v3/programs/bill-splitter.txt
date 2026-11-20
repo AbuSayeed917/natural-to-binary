@@ -1,0 +1,20 @@
+# Split a bill between friends
+The screen is teal.
+Write "SPLIT THE BILL" at the top in white.
+Remember a number called bill, and a number called people starting at 2.
+A display, labelled "BILL", shows bill as money in white on black.
+A display, labelled "PEOPLE", shows people in white on black.
+A display, labelled "EACH PAYS", shows bill divided by people as money in yellow on black.
+Buttons, two per row: "FEWER" "MORE".
+Buttons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.
+
+When I press a digit:
+  Type the digit into bill.
+When I press .:
+  Type a point into bill.
+When I press C:
+  Clear bill.
+When I press "MORE":
+  People becomes people plus 1.
+When I press "FEWER":
+  If people is more than 1, people becomes people minus 1.

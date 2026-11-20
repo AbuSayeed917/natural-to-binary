@@ -1,0 +1,23 @@
+# A small game: catch the falling star
+The screen is black.
+Write "CATCH THE STAR" at the top in yellow.
+Remember a number called basket starting at 80, a number called star_x starting at 40, a number called star_y starting at 40.
+Remember a number called score, and a number called missed.
+A display, labelled "CAUGHT", shows score in white on charcoal.
+Draw a yellow circle of size 10 at star_x and star_y.
+Draw a sky bar of size 8 at basket and 184.
+Buttons, two per row: "LEFT" "RIGHT".
+
+Every tenth of a second:
+  Star_y becomes star_y plus 5.
+  If star_y is at least 180, if star_x is at least basket minus 16, if star_x is at most basket plus 16, score becomes score plus 1.
+  If star_y is at least 180, star_x becomes a random number from 10 to 150.
+  If star_y is at least 180, star_y becomes 45.
+When I press "LEFT":
+  If basket is more than 16, basket becomes basket minus 12.
+When I press "RIGHT":
+  If basket is less than 144, basket becomes basket plus 12.
+When I press left:
+  If basket is more than 16, basket becomes basket minus 12.
+When I press right:
+  If basket is less than 144, basket becomes basket plus 12.

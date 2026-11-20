@@ -1,0 +1,22 @@
+# A dice roller
+The screen is green.
+Write "DICE ROLLER" at the top in white.
+Remember a number called die starting at 1, a number called total, and a number called rolls.
+A display, labelled "YOU ROLLED", shows die in white on black.
+A display, labelled "ROLLS", shows rolls in sky on black.
+A display, labelled "TOTAL", shows total in yellow on black.
+Buttons, one per row: "ROLL".
+Buttons, one per row: "START AGAIN".
+The "START AGAIN" button is grey.
+
+When I press "ROLL":
+  Die becomes a random number from 1 to 6.
+  Total becomes total plus die.
+  Rolls becomes rolls plus 1.
+When I press space:
+  Die becomes a random number from 1 to 6.
+  Total becomes total plus die.
+  Rolls becomes rolls plus 1.
+When I press "START AGAIN":
+  Total becomes 0.
+  Rolls becomes 0.

@@ -1,0 +1,17 @@
+# A to-do list
+The screen is charcoal.
+Write "MY TO DO LIST" at the top in yellow.
+A text box called task, labelled "NEW TASK (TYPE IT)".
+A list called tasks.
+Keep tasks between visits.
+Buttons, two per row: "ADD" "CLEAR ALL".
+The "CLEAR ALL" button is salmon.
+
+When I press "ADD":
+  Add task to tasks.
+When I press enter:
+  Add task to tasks.
+When I press "CLEAR ALL":
+  Clear tasks.
+When I click an item in tasks:
+  Tick it.
