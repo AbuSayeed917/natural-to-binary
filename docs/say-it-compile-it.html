@@ -556,7 +556,7 @@ $('kb').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key ===
 $('kb').addEventListener('input', () => { for (const ch of $('kb').value) sendKey(ch.charCodeAt(0)); $('kb').value = ''; });
 const tag = (s, n) => { const m = s.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`)); return m ? m[1].trim() : null; };
 
-claude.use('sample').then(s => { sample = s; if (!s) { $('off').hidden = false; $('make').disabled = true; } }).catch(() => { $('off').hidden = false; });
+(typeof claude !== 'undefined' && claude.use ? claude.use('sample') : Promise.resolve(null)).then(s => { sample = s; if (!s) { $('off').hidden = false; $('make').disabled = true; } }).catch(() => { $('off').hidden = false; });
 
 async function ask(label) {
   const r = await sample(convo, { modelTier: 'default', cache: false, onText: ({ text }) => setStatus(`${label} … ${text.length} characters`) });

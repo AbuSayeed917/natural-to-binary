@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Accuracy Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a careful lab notebook: measured, honest, numbers first.
+   IDEA: a test bench with a sealed chamber: requests go in, AI-written bytes run behind glass, scores come out.
+   PICTURE: the scoreboard bars for each method, filling as runs finish, above the per-task log.
+   COLOUR and TYPE: white, ink, carmine for English, prussian for bytes, green pass / red fail; Literata + JetBrains Mono.
+   LAYOUT: title + the three safety walls, then Experiment A (direct bytes), Experiment B (apps via Structured English), then the training-set builder. */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922);--ok:light-dark(#1f7a3f,#5fd38a);--bad:light-dark(#c1121f,#ff5a63)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
+.band{padding:clamp(22px,3.5vw,44px) max(4vw,16px)}.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
+h2{font-size:24px;margin:0 0 6px;font-weight:600}h3{font-size:17px;margin:0 0 6px;font-weight:600}
+.lede{color:var(--mute);max-width:72ch;margin:0}
+.walls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+.walls div{border-top:2px solid var(--pru);padding-top:10px;font-size:15px;color:var(--mute)}.walls b{color:var(--ink);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;margin:16px 0}
+label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mute)}
+label.ck{flex-direction:row;align-items:center;gap:8px;min-height:44px;color:var(--ink);font-size:15px}
+select,button{font:inherit;font-size:15px;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--pru)}
+button{cursor:pointer}button.go{background:var(--pru);border-color:var(--pru);color:#fff;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+.status{font:14px/1.5 'JetBrains Mono',monospace;color:var(--mute);min-height:21px;margin-bottom:10px}
+.board{display:grid;gap:10px;margin:14px 0 18px}
+.bar{display:grid;grid-template-columns:minmax(0,15em) minmax(0,1fr) 6.5em;gap:12px;align-items:center;font-size:15px}
+.bar .track{height:18px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar .fill{height:100%;background:var(--pru);transition:width .4s}
+.bar .fill.first{background:var(--car)}
+.bar .n{font:600 14px 'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+@media(max-width:600px){.bar{grid-template-columns:minmax(0,1fr) 6em}.bar .track{grid-column:1/-1;order:3}}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{text-align:left;font-weight:600;color:var(--mute);font-size:13.5px;padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.r{font:13.5px 'JetBrains Mono',monospace;white-space:nowrap}
+.p{color:var(--ok)}.f{color:var(--bad)}.w{color:var(--mute)}
+.scroll{overflow-x:auto}
+details{margin-top:10px}summary{cursor:pointer;min-height:44px;color:var(--mute)}
+pre{white-space:pre-wrap;font:12.5px/1.5 'JetBrains Mono',monospace;color:var(--mute);background:var(--panel);padding:12px;border-radius:8px;max-height:340px;overflow:auto}
+.off{padding:14px 16px;border-radius:10px;background:var(--panel);color:var(--mute);margin-top:14px}
+.note{font-size:14px;color:var(--mute);margin-top:12px;max-width:80ch}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px}.stack td{display:flow-root;border:0;padding:2px 0;padding-inline-start:7.5em}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mute)}}
+</style></head><body>
+<div class="band"><div class="wrap">
+<h1>How accurately can AI write binary?</h1>
+<p class="lede">This lab measures it instead of guessing. Claude gets plain-English requests and writes WebAssembly. Every result runs in a sealed test chamber and is graded automatically against answers it never sees.</p>
+<div class="walls">
+ <div><b>Sealed box.</b> WebAssembly can only touch its own memory: no files, no internet, nothing on your computer. The lab gives it no outside access at all.</div>
+ <div><b>Separate room.</b> Each binary runs in its own background worker, away from this page.</div>
+ <div><b>Time limit.</b> A binary stuck in an endless loop is shut down after 1 second and marked as failed.</div>
+ <div><b>Memory limit.</b> Binaries asking for more than 1 MB of memory are refused before they start.</div>
+</div>
+<div class="off" id="off" hidden>This lab needs permission to ask Claude, and can't here. Open it on claude.ai while signed in.</div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Experiment A: plain English → raw bytes</h2>
+<p class="lede">30 number jobs, from “add three numbers” to “fewest coins to make an amount”. Two methods: Claude writes the <b>whole binary</b>, or only the <b>function body</b> while rules write the packaging. Failures are sent back for repair.</p>
+<div class="controls">
+ <label>Tasks<select id="aCount"><option value="10">first 10</option><option value="20">first 20</option><option value="30" selected>all 30</option></select></label>
+ <label class="ck"><input type="checkbox" id="mWhole" checked> Whole binary</label>
+ <label class="ck"><input type="checkbox" id="mBody" checked> Body only</label>
+ <label>Tries per task<select id="aTries"><option value="1">1 (no repair)</option><option value="3" selected>3 (with repair)</option></select></label>
+ <label>Model<select id="aTier"><option value="quick">quick</option><option value="default" selected>default</option><option value="complex">complex</option></select></label>
+ <button class="go" id="aRun">Run experiment A</button><button id="aStop" disabled>Stop</button>
+</div>
+<div class="status" id="aStatus" aria-live="polite"></div>
+<div class="board" id="aBoard"></div>
+<div class="scroll"><table class="stack"><thead><tr><th>Task</th><th>Whole binary</th><th>Body only</th></tr></thead><tbody id="aRows"></tbody></table></div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Experiment B: everyday requests → apps</h2>
+<p class="lede">20 everyday app requests. Claude rewrites each into Structured English, our compiler makes the binary, then the lab presses every button, sends keys and runs the timer for 3 seconds, to check it works without crashing.</p>
+<div class="controls">
+ <label>Requests<select id="bCount"><option value="5">first 5</option><option value="10">first 10</option><option value="20" selected>all 20</option></select></label>
+ <label>Model<select id="bTier"><option value="quick">quick</option><option value="default" selected>default</option><option value="complex">complex</option></select></label>
+ <button class="go" id="bRun">Run experiment B</button><button id="bStop" disabled>Stop</button>
+</div>
+<div class="status" id="bStatus" aria-live="polite"></div>
+<div class="board" id="bBoard"></div>
+<div class="scroll"><table class="stack"><thead><tr><th>Request</th><th>Compiled</th><th>Runs safely</th><th>Size</th></tr></thead><tbody id="bRows"></tbody></table></div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Training set builder</h2>
+<p class="lede">The examples a small model would learn from: everyday request → Structured English that compiles. Pairs come from Experiment B, and from Claude writing varied requests for each of the 10 demo apps. Every pair is checked by the compiler before it's kept.</p>
+<div class="controls">
+ <label>Requests per app<select id="dPer"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select></label>
+ <button class="go" id="dRun">Make examples from the demo apps</button>
+ <button id="dCopy">Copy as JSONL</button><button id="dClear">Clear</button>
+</div>
+<div class="status" id="dStatus" aria-live="polite"></div>
+<p style="font-size:20px;margin:6px 0"><b id="dCount">0</b> checked training pairs</p>
+<details><summary>See the pairs</summary><pre id="dPairs"></pre></details>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Full results</h2>
+<div class="controls"><button id="copyAll">Copy all results as JSON</button><button id="clearAll">Clear saved results</button></div>
+<p class="note">Results are saved in this browser, so you can close the page and come back. Each run makes many requests to Claude, so the full set can take several minutes. If Claude is busy, the lab waits and retries.</p>
+</div></div>
+
+<script>
+{
+// 5x7 pixel font. Each glyph: 7 rows, 5 bits per row (16 = leftmost pixel).
+const FONT57 = {
+  '0':[14,17,19,21,25,17,14],'1':[4,12,4,4,4,4,14],'2':[14,17,1,2,4,8,31],'3':[31,2,4,2,1,17,14],'4':[2,6,10,18,31,2,2],
+  '5':[31,16,30,1,1,17,14],'6':[6,8,16,30,17,17,14],'7':[31,1,2,4,8,8,8],'8':[14,17,17,14,17,17,14],'9':[14,17,17,15,1,2,12],
+  A:[14,17,17,31,17,17,17],B:[30,17,17,30,17,17,30],C:[14,17,16,16,16,17,14],D:[28,18,17,17,17,18,28],E:[31,16,16,30,16,16,31],
+  F:[31,16,16,30,16,16,16],G:[14,17,16,23,17,17,15],H:[17,17,17,31,17,17,17],I:[14,4,4,4,4,4,14],J:[7,2,2,2,2,18,12],
+  K:[17,18,20,24,20,18,17],L:[16,16,16,16,16,16,31],M:[17,27,21,21,17,17,17],N:[17,17,25,21,19,17,17],O:[14,17,17,17,17,17,14],
+  P:[30,17,17,30,16,16,16],Q:[14,17,17,17,21,18,13],R:[30,17,17,30,20,18,17],S:[15,16,16,14,1,1,30],T:[31,4,4,4,4,4,4],
+  U:[17,17,17,17,17,17,14],V:[17,17,17,17,17,10,4],W:[17,17,17,21,21,21,10],X:[17,17,10,4,10,17,17],Y:[17,17,17,10,4,4,4],Z:[31,1,2,4,8,16,31],
+  '+':[0,4,4,31,4,4,0],'-':[0,0,0,31,0,0,0],'.':[0,0,0,0,0,12,12],'=':[0,0,31,0,31,0,0],'/':[0,1,2,4,8,16,0],'%':[24,25,2,4,8,19,3],
+  ':':[0,12,12,0,12,12,0],',':[0,0,0,0,12,4,8],'!':[4,4,4,4,4,0,4],'?':[14,17,1,2,4,0,4],'(':[2,4,8,8,8,4,2],')':[8,4,2,2,2,4,8],
+  "'":[12,4,8,0,0,0,0],'*':[0,4,21,14,21,4,0],'#':[10,10,31,10,31,10,10],'&':[12,18,20,8,21,18,13],'<':[2,4,8,16,8,4,2],'>':[8,4,2,1,2,4,8],
+  '\x1c':[12,18,18,12,0,0,0], '\x1d':[0,4,0,31,0,4,0], '\x1e':[0,17,10,4,10,17,0], '\x1f':[6,9,8,28,8,8,31]   // °  ÷  ×  £
+};
+
+
+// Structured English v0.3 -> WebAssembly binary for a 160x240 "Tiny Phone".
+// The host machine provides memory (screen = 1 byte per pixel, 16 colours) and calls:
+//   start()  once,  draw()  to repaint,  click(x, y),  key(code),  tick()  ten times a second.
+// Before start(), the host writes a random seed at SEED_AT. To keep data between visits, the host saves the `keep` memory regions.
+// Numbers are stored with 2 decimal places (x100) as 64-bit integers, so money and decimals work.
+function compileSE3(text, font) {
+  const FONTDATA = font || (typeof FONT57 !== 'undefined' ? FONT57 : null);
+  if (!FONTDATA) throw new Error('compileSE3 needs the 5x7 font (font57.js)');
+  const W = 160, H = 240, GW = 6, GH = 7;
+  const COLOURS = { black:0, white:1, red:2, green:3, blue:4, orange:5, purple:6, teal:7, grey:8, gray:8, salmon:9, lime:10, sky:11, yellow:12, lilac:13, charcoal:14, pink:15 };
+  const SEED_AT = 38900, TICK_AT = 38904, SCREEN_AT = 38908, OP_AT = 39000, DISP_AT = 39100, PLACES_AT = 39500, VARS_AT = 40000, BOX_AT = 41000, LIST_AT = 42000, STR_AT = 50000, FONT_AT = 60000;
+  const BOX_MAX = 18, LIST_MAX = 6, ROW = 18;
+  const KEY = { left: 17, up: 18, right: 19, down: 20, space: 32, enter: 13 };
+
+  const FONT = new Array(128 * GH).fill(0);
+  for (const [ch, rows] of Object.entries(FONTDATA)) {
+    const codes = [ch.charCodeAt(0)]; if (/[A-Z]/.test(ch)) codes.push(ch.toLowerCase().charCodeAt(0));
+    for (const code of codes) rows.forEach((r, i) => FONT[code * GH + i] = r);
+  }
+  const toCodes = s => [...s.toUpperCase()].map(ch => ch === '°' ? 0x1c : ch === '÷' ? 0x1d : ch === '×' ? 0x1e : ch === '£' ? 0x1f : ch === '−' ? 45 : ch.charCodeAt(0) < 128 ? ch.charCodeAt(0) : 63);
+  const textW = (s, sc) => toCodes(s).length * GW * sc - sc;
+
+  // ---- byte helpers ----
+  const uleb = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+  const sleb = n => { const o = []; while (true) { let b = n & 0x7f; n >>= 7; if ((n === 0 && !(b & 0x40)) || (n === -1 && (b & 0x40))) { o.push(b); return o; } o.push(b | 0x80); } };
+  const c = n => [0x41, ...sleb(n)], C = n => [0x42, ...sleb(n)], g = i => [0x20, i], st = i => [0x21, i], call = f => [0x10, f];
+  const I = { add:0x6a, sub:0x6b, mul:0x6c, divs:0x6d, divu:0x6e, remu:0x70, and:0x71, or:0x72, xor:0x73, shl:0x74, shru:0x76, eqz:0x45, eq:0x46, ne:0x47, lt:0x48, ltu:0x49, gt:0x4a, le:0x4c, ge:0x4e };
+  const L = { add:0x7c, sub:0x7d, mul:0x7e, divs:0x7f, rems:0x81, eqz:0x50, eq:0x51, ne:0x52, lt:0x53, gt:0x55, le:0x57, ge:0x59, wrap:0xa7, ext:0xac, extu:0xad };
+  const LD8 = [0x2d, 0, 0], ST8 = [0x3a, 0, 0], LD32 = [0x28, 2, 0], ST32 = [0x36, 2, 0], LD64 = [0x29, 3, 0], ST64 = [0x37, 3, 0];
+  const COPY = [0xfc, 0x0a, 0, 0];
+  const IF = [0x04, 0x40], IF64 = [0x04, 0x7e], ELSE = 0x05, END = 0x0b, RET = 0x0f;
+  const until = (cond, body) => [0x02, 0x40, 0x03, 0x40, ...cond, 0x0d, 1, ...body, 0x0c, 0, END, END];
+  const F = { start:0, draw:1, click:2, key:3, tick:4, rect:5, glyph:6, text:7, num:8, circle:9, mul:10, div:11, tdigit:12, tpoint:13, boxkey:14, listadd:15, listdraw:16, listclick:17, rand:18 };
+
+  // ---- built-in library (the same bytes in every app) ----
+  const lib = {};
+  lib.rect = [[2,0x7f]], lib.rect.code = [...g(1), ...st(5),                          // rect(x, y, w, h, colour)
+    ...until([...g(5), ...g(1), ...g(3), I.add, I.ge], [...g(0), ...st(6),
+      ...until([...g(6), ...g(0), ...g(2), I.add, I.ge], [...g(6), ...c(W), I.ltu, ...g(5), ...c(H), I.ltu, I.and, ...IF,
+        ...g(5), ...c(W), I.mul, ...g(6), I.add, ...g(4), ...ST8, END, ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.glyph = [[3,0x7f]], lib.glyph.code = [...c(0), ...st(5),                       // glyph(code, x, y, colour, scale)
+    ...until([...g(5), ...c(GH), I.ge], [...c(FONT_AT), ...g(0), ...c(GH), I.mul, I.add, ...g(5), I.add, ...LD8, ...st(7), ...c(0), ...st(6),
+      ...until([...g(6), ...c(5), I.ge], [...g(7), ...c(16), ...g(6), I.shru, I.and, ...IF,
+          ...g(1), ...g(6), ...g(4), I.mul, I.add, ...g(2), ...g(5), ...g(4), I.mul, I.add, ...g(4), ...g(4), ...g(3), ...call(F.rect), END,
+        ...g(6), ...c(1), I.add, ...st(6)]),
+      ...g(5), ...c(1), I.add, ...st(5)])];
+  lib.text = [[1,0x7f]], lib.text.code = [...c(0), ...st(6),                         // text(addr, len, x, y, colour, scale)
+    ...until([...g(6), ...g(1), I.ge], [...g(0), ...g(6), I.add, ...LD8, ...g(2), ...g(6), ...c(GW), ...g(5), I.mul, I.mul, I.add,
+      ...g(3), ...g(4), ...g(5), ...call(F.glyph), ...g(6), ...c(1), I.add, ...st(6)])];
+  const drawCh = codeBytes => [...g(7), ...g(10), I.sub, ...st(7), ...codeBytes, ...g(7), ...g(2), ...g(3), ...g(4), ...call(F.glyph)];
+  lib.num = [[2,0x7f],[1,0x7e],[2,0x7f]], lib.num.code = [                           // num(value, right x, y, colour, scale, money)
+    ...g(4), ...c(GW), I.mul, ...st(10),
+    ...g(0), ...C(0), L.lt, ...st(6), ...g(6), ...IF, ...C(0), ...g(0), L.sub, ...st(0), END,
+    ...g(1), ...st(7), ...g(0), ...C(100), L.rems, L.wrap, ...st(9), ...g(0), ...C(100), L.divs, ...st(8),
+    ...g(5), ...IF, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), ...drawCh(c(46)),
+    ELSE, ...g(9), ...IF, ...g(9), ...c(10), I.remu, I.eqz, ...IF, ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]),
+      ELSE, ...drawCh([...g(9), ...c(10), I.remu, ...c(48), I.add]), ...drawCh([...g(9), ...c(10), I.divu, ...c(48), I.add]), END,
+      ...drawCh(c(46)), END, END,
+    0x03, 0x40, ...drawCh([...g(8), ...C(10), L.rems, L.wrap, ...c(48), I.add]), ...g(8), ...C(10), L.divs, ...st(8), ...g(8), L.eqz, I.eqz, 0x0d, 0, END,
+    ...g(5), ...IF, ...drawCh(c(0x1f)), END, ...g(6), ...IF, ...drawCh(c(45)), END];
+  lib.circle = [[2,0x7f]], lib.circle.code = [...c(0), ...g(2), I.sub, ...st(4),    // circle(cx, cy, r, colour)
+    ...until([...g(4), ...g(2), I.gt], [...c(0), ...g(2), I.sub, ...st(5),
+      ...until([...g(5), ...g(2), I.gt], [...g(5), ...g(5), I.mul, ...g(4), ...g(4), I.mul, I.add, ...g(2), ...g(2), I.mul, I.le, ...IF,
+        ...g(0), ...g(5), I.add, ...g(1), ...g(4), I.add, ...c(1), ...c(1), ...g(3), ...call(F.rect), END, ...g(5), ...c(1), I.add, ...st(5)]),
+      ...g(4), ...c(1), I.add, ...st(4)])];
+  const round = (q, half) => [...g(q), ...C(0), L.ge, ...IF64, ...g(q), ...C(half), L.add, ELSE, ...g(q), ...C(half), L.sub, END];
+  lib.mul = [[1,0x7e]], lib.mul.code = [...g(0), ...g(1), L.mul, ...st(2), ...round(2, 50), ...C(100), L.divs];
+  lib.div = [[1,0x7e]], lib.div.code = [...g(1), L.eqz, ...IF, ...C(0), RET, END, ...g(0), ...C(1000), L.mul, ...g(1), L.divs, ...st(2), ...round(2, 5), ...C(10), L.divs];
+  const vAddr = [...c(VARS_AT), ...g(0), ...c(8), I.mul, I.add], pAddr = [...c(PLACES_AT), ...g(0), ...c(4), I.mul, I.add];
+  lib.tdigit = [[1,0x7f]], lib.tdigit.code = [...pAddr, ...LD32, ...st(2),
+    ...g(2), I.eqz, ...IF, ...vAddr, ...vAddr, ...LD64, ...C(10), L.mul, ...g(1), L.ext, ...C(100), L.mul, L.add, ...ST64,
+    ELSE, ...g(2), ...c(1), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, ...C(10), L.mul, L.add, ...ST64, ...pAddr, ...c(2), ...ST32,
+    ELSE, ...g(2), ...c(2), I.eq, ...IF, ...vAddr, ...vAddr, ...LD64, ...g(1), L.ext, L.add, ...ST64, ...pAddr, ...c(3), ...ST32, END, END, END];
+  lib.tpoint = [], lib.tpoint.code = [...pAddr, ...LD32, I.eqz, ...IF, ...pAddr, ...c(1), ...ST32, END];
+  lib.boxkey = [[1,0x7f]], lib.boxkey.code = [...g(0), ...LD8, ...st(2),
+    ...g(1), ...c(8), I.eq, ...IF, ...g(2), ...IF, ...g(0), ...g(2), ...c(1), I.sub, ...ST8, END, RET, END,
+    ...g(1), ...c(97), I.ge, ...g(1), ...c(122), I.le, I.and, ...IF, ...g(1), ...c(32), I.sub, ...st(1), END,
+    ...g(1), ...c(32), I.ge, ...g(1), ...c(127), I.lt, I.and, ...g(2), ...c(BOX_MAX), I.lt, I.and, ...IF,
+      ...g(0), ...c(1), I.add, ...g(2), I.add, ...g(1), ...ST8, ...g(0), ...g(2), ...c(1), I.add, ...ST8, END];
+  lib.listadd = [[2,0x7f]], lib.listadd.code = [...g(0), ...LD8, ...st(2),
+    ...g(2), ...c(LIST_MAX), I.lt, ...g(1), ...LD8, ...c(0), I.gt, I.and, ...IF,
+      ...g(0), ...c(4), I.add, ...g(2), ...c(20), I.mul, I.add, ...st(3),
+      ...g(3), ...g(1), ...LD8, ...ST8, ...g(3), ...c(1), I.add, ...c(0), ...ST8,
+      ...g(3), ...c(2), I.add, ...g(1), ...c(1), I.add, ...c(BOX_MAX), ...COPY,
+      ...g(0), ...g(2), ...c(1), I.add, ...ST8, ...g(1), ...c(0), ...ST8, END];
+  lib.listdraw = [[4,0x7f]], lib.listdraw.code = [...g(0), ...LD8, ...st(5), ...c(0), ...st(3),
+    ...until([...g(3), ...g(5), I.ge], [
+      ...g(0), ...c(4), I.add, ...g(3), ...c(20), I.mul, I.add, ...st(4), ...g(1), ...g(3), ...c(ROW), I.mul, I.add, ...st(6),
+      ...c(6), ...g(6), ...c(2), I.add, ...c(12), ...c(12), ...c(1), ...call(F.rect),
+      ...g(4), ...c(1), I.add, ...LD8, ...IF,
+        ...c(6), ...g(6), ...c(2), I.add, ...c(12), ...c(12), ...c(3), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(24), ...g(6), ...c(3), I.add, ...c(8), ...c(1), ...call(F.text),
+        ...c(24), ...g(6), ...c(6), I.add, ...g(4), ...LD8, ...c(GW), I.mul, ...c(1), ...c(8), ...call(F.rect),
+      ELSE, ...c(7), ...g(6), ...c(3), I.add, ...c(10), ...c(10), ...c(0), ...call(F.rect),
+        ...g(4), ...c(2), I.add, ...g(4), ...LD8, ...c(24), ...g(6), ...c(3), I.add, ...g(2), ...c(1), ...call(F.text), END,
+      ...g(3), ...c(1), I.add, ...st(3)])];
+  lib.listclick = [[2,0x7f]], lib.listclick.code = [...g(0), ...LD8, ...st(3),
+    ...g(1), ...c(0), I.lt, ...g(1), ...g(3), I.ge, I.or, ...IF, RET, END,
+    ...g(0), ...c(4), I.add, ...g(1), ...c(20), I.mul, I.add, ...st(4),
+    ...g(2), ...c(1), I.eq, ...IF, ...g(4), ...c(1), I.add, ...c(1), ...g(4), ...c(1), I.add, ...LD8, I.sub, ...ST8,
+    ELSE, ...g(4), ...g(4), ...c(20), I.add, ...g(3), ...c(1), I.sub, ...g(1), I.sub, ...c(20), I.mul, ...COPY, ...g(0), ...g(3), ...c(1), I.sub, ...ST8, END];
+  lib.rand = [[3,0x7f]], lib.rand.code = [                                            // rand(lo, hi) -> whole number between, as x100
+    ...c(SEED_AT), ...LD32, ...st(2), ...g(2), I.eqz, ...IF, ...c(0x2545F49), ...st(2), END,
+    ...g(2), ...g(2), ...c(13), I.shl, I.xor, ...st(2), ...g(2), ...g(2), ...c(17), I.shru, I.xor, ...st(2), ...g(2), ...g(2), ...c(5), I.shl, I.xor, ...st(2),
+    ...c(SEED_AT), ...g(2), ...ST32,
+    ...g(0), ...C(100), L.divs, L.wrap, ...st(3), ...g(1), ...C(100), L.divs, L.wrap, ...g(3), I.sub, ...c(1), I.add, ...st(4),
+    ...g(4), ...c(1), I.lt, ...IF, ...c(1), ...st(4), END,
+    ...g(2), ...c(1), I.shru, ...g(4), I.remu, ...g(3), I.add, L.ext, ...C(100), L.mul];
+
+  // ---- read the sentences ----
+  const newScreen = name => ({ name, titles: [], displays: [], groups: [], draws: [], box: null, list: null });
+  const P = { bg: 14, screens: [newScreen('MAIN')], round: false, ink: 1, vars: {}, init: {}, hasOp: false, events: [], keep: [], allDisplays: [],
+    colours: { digit: 8, op: 5, '=': 3, C: 9, '.': 8, word: 4 }, named: {}, box: null, list: null };
+  let S = P.screens[0], usedMain = false;
+  const colourOf = w => { if (!(w in COLOURS)) throw new Error(`“${w}” isn't a colour I know (try: ${Object.keys(COLOURS).slice(0, 8).join(', ')}…)`); return COLOURS[w]; };
+  const LABEL = { plus:'+', add:'+', '+':'+', minus:'-', '-':'-', '−':'-', times:'×', '×':'×', x:'×', '*':'×', divide:'÷', '÷':'÷', '/':'÷', equals:'=', '=':'=', c:'C', clear:'C', '.':'.', point:'.', dot:'.' };
+  const OPCODE = { '+':1, '-':2, '×':3, '÷':4 };
+  const quoted = s => [...s.matchAll(/"([^"]*)"/g)].map(m => m[1].toUpperCase());
+  const labelOf = w => { if (/^\d$/.test(w)) return w; if (LABEL[w]) return LABEL[w]; return null; };
+  let ev = null;
+  const raw = text.replace(/[“”]/g, '"');
+  const lines = raw.split('\n').flatMap((ln, n) => ln.split(/(?<=\.)\s+(?=[A-Z])/)
+      .flatMap(p => /^\s*(when|every|on the)\b/i.test(p) ? p.split(/(?<=:)\s+/) : [p])
+      .map(p => { const t = p.trim().toLowerCase(); return { n: n + 1, raw: p.trim(), s: (t.endsWith(':') ? t.slice(0, -1) : t.replace(/[.;!]$/, '')).trim() }; }))
+    .filter(l => l.s && !l.s.startsWith('#'));
+  const varIndex = name => { if (!(name in P.vars)) throw new Error(`I don't know a number called “${name}”. Add “Remember a number called ${name}.”`); return P.vars[name]; };
+  const SHAPE = { circle: 'circle', dot: 'circle', ball: 'circle', square: 'square', box: 'square', block: 'square', bar: 'bar', paddle: 'bar' };
+
+  for (const l of lines) {
+    const s = l.s, q = quoted(l.raw); let m;
+    try {
+      if ((m = s.match(/^on the "[^"]*" screen$/))) {
+        const name = q[0]; let sc = P.screens.find(x => x.name === name);
+        if (!sc) { if (P.screens.length === 1 && !usedMain && P.screens[0].name === 'MAIN') { P.screens[0].name = name; sc = P.screens[0]; } else { sc = newScreen(name); P.screens.push(sc); } }
+        S = sc; ev = null; continue;
+      }
+      if ((m = s.match(/^the (?:screen|background) is (\w+)$/))) { P.bg = colourOf(m[1]); ev = null; continue; }
+      if ((m = s.match(/^write "[^"]*" at the top(?: in (\w+))?$/))) { S.titles.push({ text: q[0], colour: m[1] ? colourOf(m[1]) : 1 }); usedMain = true; ev = null; continue; }
+      if ((m = s.match(/^(?:there is )?a display(?: called (\w+))?(?: at the top)?(?:,? labelled "[^"]*",?)? shows (.+?)(?: as (money))? in (\w+)(?: on (\w+))?$/))) {
+        const what = m[2]; const stored = /^(numbers|money)$/.test(what);
+        const d = { name: m[1] || null, label: /labelled/.test(s) ? q[0] : null, stored, expr: stored ? null : what, money: m[3] === 'money' || what === 'money', ink: colourOf(m[4]), back: m[5] ? colourOf(m[5]) : 0, idx: P.allDisplays.length };
+        S.displays.push(d); P.allDisplays.push(d); usedMain = true; ev = null; continue;
+      }
+      if ((m = s.match(/^a text box called (\w+)(?:,? labelled "[^"]*")?$/))) { if (P.box) throw new Error('Only one text box for now'); P.box = S.box = { name: m[1], label: /labelled/.test(s) ? q[0] : null, screen: S }; P.named[m[1]] = 'box'; usedMain = true; ev = null; continue; }
+      if ((m = s.match(/^a list called (\w+)$/))) { if (P.list) throw new Error('Only one list for now'); P.list = S.list = { name: m[1], screen: S }; P.named[m[1]] = 'list'; usedMain = true; ev = null; continue; }
+      if ((m = s.match(/^buttons(?:,? (\w+) per row)?: (.+)$/))) {
+        const words = { one:1, two:2, three:3, four:4, five:5, six:6 };
+        const per = m[1] ? (words[m[1]] || parseInt(m[1], 10) || 4) : 4;
+        const labels = [];
+        for (const tok of m[2].match(/"[^"]*"|\S+/g)) {
+          if (tok.startsWith('"')) { labels.push(tok.slice(1, -1).toUpperCase()); continue; }
+          const t = tok.replace(/,$/, ''); const lab = labelOf(t);
+          if (lab) labels.push(lab); else if (/^[a-z][a-z%]*$/.test(t)) labels.push(t.toUpperCase()); else if (t) throw new Error(`I can't make a button from “${t}”. Put words in quotes, like "ADD".`);
+        }
+        S.groups.push({ per: Math.min(per, labels.length) || 1, labels }); usedMain = true; ev = null; continue;
+      }
+      if ((m = s.match(/^draw an? (?:(\w+) )?(\w+)(?: of size (\d+))? at (.+?) and (.+)$/)) && (SHAPE[m[2]])) {
+        S.draws.push({ colour: m[1] ? colourOf(m[1]) : 1, shape: SHAPE[m[2]], size: m[3] ? +m[3] : 8, x: m[4], y: m[5], line: l }); usedMain = true; ev = null; continue;
+      }
+      if (/^the buttons are round$/.test(s)) { P.round = true; continue; }
+      if ((m = s.match(/^the (?:(digit|operation|equals|clear|c|word|point|=|\.) )?buttons? (?:are|is) (\w+)$/))) {
+        const k = { digit: 'digit', operation: 'op', equals: '=', '=': '=', clear: 'C', c: 'C', word: 'word', point: '.', '.': '.' }[m[1]] || 'all';
+        const col = colourOf(m[2]); if (k === 'all') for (const key in P.colours) if (!key.startsWith('w:')) P.colours[key] = col; else; else P.colours[k] = col; continue;
+      }
+      if ((m = s.match(/^the "([^"]*)" button is (\w+)$/))) { P.colours['w:' + m[1].toUpperCase()] = colourOf(m[2]); continue; }
+      if ((m = s.match(/^the labels are (\w+)$/))) { P.ink = colourOf(m[1]); continue; }
+      if ((m = s.match(/^(?:keep|save) (.+?) between visits$/))) { P.keep.push(...m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)); continue; }
+      if ((m = s.match(/^remember (.+)$/)) && !ev) {
+        for (const part of m[1].split(/\s*,\s*(?:and\s+)?|\s+and\s+/).filter(Boolean)) {
+          let k;
+          if ((k = part.match(/^an? number called (\w+)(?: starting at (-?[\d.]+))?$/))) { P.vars[k[1]] = Object.keys(P.vars).length; if (k[2]) P.init[k[1]] = Math.round(parseFloat(k[2]) * 100); }
+          else if (/^an? operation$/.test(part)) P.hasOp = true;
+          else throw new Error(`I can remember “a number called …” or “an operation”, not “${part}”`);
+        }
+        continue;
+      }
+      if ((m = s.match(/^every (second|tenth of a second|half (?:a )?second|(\d+) seconds)$/))) {
+        const every = m[2] ? +m[2] * 10 : m[1] === 'second' ? 10 : m[1].startsWith('half') ? 5 : 1;
+        ev = { kind: 'tick', every, labels: [], actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when i (?:click|tap|press) an item in (\w+)$/))) {
+        if (!P.list || P.list.name !== m[1]) throw new Error(`There's no list called “${m[1]}”`);
+        ev = { kind: 'item', labels: [], actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if ((m = s.match(/^when the app (?:opens|starts)$/))) { ev = { kind: 'start', labels: [], actions: [], line: l }; P.events.push(ev); continue; }
+      if ((m = s.match(/^when (?:i press|i type|i click on|i tap) (.+)$/))) {
+        const what = m[1].replace(/^the /, '').replace(/ (?:arrow|key)$/, ''); let labels;
+        if (/^an? (digit|number)$/.test(what)) labels = '0123456789'.split('');
+        else if (/^an? operation$/.test(what)) labels = ['+', '-', '×', '÷'];
+        else if (KEY[what] && !q.length) labels = ['KEY:' + what];
+        else if (q.length) labels = [q[0]];
+        else if (labelOf(what)) labels = [labelOf(what)];
+        else labels = [what.toUpperCase()];
+        ev = { kind: 'press', labels, actions: [], line: l }; P.events.push(ev); continue;
+      }
+      if (ev) { ev.actions.push({ s, l }); continue; }
+      throw new Error('I don\'t know this kind of sentence');
+    } catch (e) { throw new Error(`Line ${l.n}, “${l.raw}”: ${e.message}`); }
+  }
+  if (!P.screens.some(x => x.groups.length || x.displays.length || x.box || x.draws.length || x.titles.length)) throw new Error('Describe a display, a text box, a drawing or some buttons to start.');
+
+  // ---- expressions: numbers with 2 decimals (i64, x100) ----
+  function expr(src, ctx) {
+    const t = src.replace(/\bmultiplied by\b/g, ' times ').replace(/\bdivided by\b/g, ' over ').replace(/([()])/g, ' $1 ').trim().split(/\s+/);
+    let i = 0;
+    const atom = () => {
+      let w = t[i++];
+      if (w === 'a' && t[i] === 'random') {
+        i++; if (t[i] === 'number') i++; if (t[i] === 'from' || t[i] === 'between') i++; else throw new Error('write it as “a random number from 1 to 6”');
+        const lo = post(); if (t[i] !== 'to' && t[i] !== 'and') throw new Error('write it as “a random number from 1 to 6”'); i++;
+        const hi = post(); return [...lo, ...hi, ...call(F.rand)];
+      }
+      if (w === 'the') w = t[i++];
+      if (w === undefined) throw new Error('the sentence ends too early');
+      if (w === '(') { const e = add(); if (t[i++] !== ')') throw new Error('missing a closing bracket'); return e; }
+      if (/^-?\d+(\.\d+)?$/.test(w)) return C(Math.round(parseFloat(w) * 100));
+      if (w === 'digit') { if (ctx.digit === undefined) throw new Error('“the digit” only makes sense in “When I press a digit”'); return C(ctx.digit * 100); }
+      return [...c(VARS_AT + 8 * varIndex(w)), ...LD64];
+    };
+    const post = () => { let e = atom(); while (t[i] === 'percent' || t[i] === '%') { i++; e = [...e, ...C(100), L.divs]; } return e; };
+    const mul = () => { let e = post(); while (['times', 'over', 'of'].includes(t[i])) { const op = t[i++]; e = [...e, ...post(), ...call(op === 'over' ? F.div : F.mul)]; } return e; };
+    const add = () => { let e = mul(); while (t[i] === 'plus' || t[i] === 'minus') { const op = t[i++]; e = [...e, ...mul(), op === 'plus' ? L.add : L.sub]; } return e; };
+    const out = add();
+    if (i < t.length) throw new Error(`I don't understand “${t.slice(i).join(' ')}”`);
+    return out;
+  }
+  const pixel = (src) => [...expr(src, {}), ...C(100), L.divs, L.wrap];
+  const COND = [['is more than', L.gt], ['is greater than', L.gt], ['is bigger than', L.gt], ['is less than', L.lt], ['is smaller than', L.lt], ['is at least', L.ge], ['is at most', L.le], ['is not', L.ne], ['is', L.eq]];
+  function cond(src, ctx) { for (const [w, op] of COND) { const k = src.indexOf(' ' + w + ' '); if (k > 0) return [...expr(src.slice(0, k), ctx), ...expr(src.slice(k + w.length + 2), ctx), op]; } throw new Error(`I can't read the condition “${src}” (try “x is more than 1”)`); }
+  const setVar = (name, val) => { const v = varIndex(name); return [...c(VARS_AT + 8 * v), ...val, ...ST64, ...c(PLACES_AT + 4 * v), ...c(0), ...ST32]; };
+  const screenIndex = name => { const k = P.screens.findIndex(x => x.name === name); if (k < 0) throw new Error(`There's no screen called “${name}”. Add “On the "${name}" screen:”`); return k; };
+
+  function action(s, ctx, raw) {
+    let m;
+    if ((m = s.match(/^if (.+?), (.+)$/))) return [...cond(m[1], ctx), ...IF, ...action(m[2], ctx, raw), END];
+    if ((m = s.match(/^go to the "?([^"]+?)"? screen$/))) { const name = (quoted(raw)[0] || m[1]).toUpperCase(); return [...c(SCREEN_AT), ...c(screenIndex(name)), ...ST32]; }
+    if ((m = s.match(/^(\w+) becomes (.+)$/)) || (m = s.match(/^set (\w+) to (.+)$/))) return setVar(m[1], expr(m[2], ctx));
+    if ((m = s.match(/^type the digit into (\w+)$/))) { if (ctx.digit === undefined) throw new Error('“Type the digit” only works in “When I press a digit”'); return [...c(varIndex(m[1])), ...c(ctx.digit), ...call(F.tdigit)]; }
+    if ((m = s.match(/^type a (?:point|dot|decimal point) into (\w+)$/))) return [...c(varIndex(m[1])), ...call(F.tpoint)];
+    if ((m = s.match(/^show (.+?)(?: on (\w+))?$/))) {
+      const ds = P.allDisplays.filter(d => d.stored); let d;
+      if (m[2]) { d = ds.find(x => x.name === m[2]); if (!d) throw new Error(`There's no display called “${m[2]}” that shows numbers or money`); }
+      else { if (ds.length !== 1) throw new Error(ds.length ? 'Say which display: “Show x on name.”' : 'Add a display that “shows numbers” first'); d = ds[0]; }
+      return [...c(DISP_AT + 8 * d.idx), ...expr(m[1], ctx), ...ST64];
+    }
+    if ((m = s.match(/^clear (\w+)$/))) {
+      const n = m[1];
+      if (P.named[n] === 'box') return [...c(BOX_AT), ...c(0), ...ST8];
+      if (P.named[n] === 'list') return [...c(LIST_AT), ...c(0), ...ST8];
+      return setVar(n, C(0));
+    }
+    if (/^remember the operation$/.test(s)) { if (!(ctx.label in OPCODE)) throw new Error('“Remember the operation” only works for + − × ÷ buttons'); return [...c(OP_AT), ...c(OPCODE[ctx.label]), ...ST32]; }
+    if ((m = s.match(/^apply the operation to (\w+) and (\w+),? and put the answer in (\w+)$/))) {
+      if (!P.hasOp) throw new Error('Add “Remember … an operation.” first');
+      const a = [...c(VARS_AT + 8 * varIndex(m[1])), ...LD64], b = [...c(VARS_AT + 8 * varIndex(m[2])), ...LD64];
+      const when = (code, val) => [...c(OP_AT), ...LD32, ...c(code), I.eq, ...IF, ...setVar(m[3], val), END];
+      return [...when(1, [...a, ...b, L.add]), ...when(2, [...a, ...b, L.sub]), ...when(3, [...a, ...b, ...call(F.mul)]), ...when(4, [...a, ...b, ...call(F.div)])];
+    }
+    if ((m = s.match(/^add (\w+) to (\w+)$/))) { if (P.named[m[1]] !== 'box' || P.named[m[2]] !== 'list') throw new Error('“Add” needs a text box and a list, like “Add task to tasks.”'); return [...c(LIST_AT), ...c(BOX_AT), ...call(F.listadd)]; }
+    if (/^(tick|untick|check) it$/.test(s)) { if (!ctx.item) throw new Error('“Tick it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(1), ...call(F.listclick)]; }
+    if (/^(remove|delete) it$/.test(s)) { if (!ctx.item) throw new Error('“Remove it” only works in “When I click an item in …”'); return [...c(LIST_AT), ...g(2), ...c(2), ...call(F.listclick)]; }
+    throw new Error('I don\'t know this action');
+  }
+  const runActions = (e, ctx) => e.actions.flatMap(a => { try { return action(a.s, ctx, a.l.raw); } catch (err) { throw new Error(`Line ${a.l.n}, “${a.l.raw}”: ${err.message}`); } });
+
+  // ---- layout per screen: things from the top, buttons from the bottom ----
+  const big = sc => sc.displays.length === 1 && !sc.box && !sc.list;
+  for (const sc of P.screens) {
+    let y = 6; sc.lay = { titles: [], displays: [], buttons: [] };
+    for (const t of sc.titles) { const s2 = textW(t.text, 2) <= 152 ? 2 : 1; sc.lay.titles.push({ ...t, sc: s2, x: Math.max(4, (W - textW(t.text, s2)) >> 1), y }); y += s2 * GH + 6; }
+    for (const d of sc.displays) {
+      const s2 = big(sc) ? 3 : 2, h = big(sc) ? 32 : 22; let ly = null;
+      if (d.label) { ly = y; y += 9; }
+      sc.lay.displays.push({ ...d, ly, y, h, sc: s2 }); y += h + 6;
+    }
+    if (sc.box) { if (sc.box.label) { sc.box.ly = y; y += 9; } sc.box.y = y; y += 24; }
+    if (sc.list) { sc.list.y = y; y += LIST_MAX * ROW + 4; }
+    sc.topEnd = y;
+    const rows = sc.groups.reduce((n, gp) => n + Math.ceil(gp.labels.length / gp.per), 0);
+    if (rows) {
+      const room = H - 4 - y, bh = Math.min(40, Math.floor((room - (rows - 1) * 4) / rows));
+      if (bh < 16) throw new Error(`There are too many things to fit on the${P.screens.length > 1 ? ' "' + sc.name + '"' : ''} screen. Try fewer buttons or displays, or another screen.`);
+      let by = H - 4 - rows * bh - (rows - 1) * 4;
+      for (const gp of sc.groups) {
+        const bw = Math.floor((152 - (gp.per - 1) * 4) / gp.per);
+        gp.labels.forEach((lab, i) => { if (i && i % gp.per === 0) by += bh + 4; sc.lay.buttons.push({ lab, x: 4 + (i % gp.per) * (bw + 4), y: by, w: bw, h: bh }); });
+        by += bh + 4;
+      }
+    }
+  }
+  const allButtons = P.screens.flatMap(sc => sc.lay.buttons);
+  const kindOf = lab => /^\d$/.test(lab) ? 'digit' : lab in OPCODE ? 'op' : lab === '=' ? '=' : lab === 'C' ? 'C' : lab === '.' ? '.' : 'word';
+  for (const e of P.events) if (e.kind === 'press') for (const lab of e.labels) if (e.labels.length === 1 && lab !== 'ENTER' && !lab.startsWith('KEY:') && !allButtons.some(b => b.lab === lab)) throw new Error(`Line ${e.line.n}: there's no ${lab} button to press. Add it to a “Buttons:” list.`);
+
+  // ---- strings go into memory once ----
+  const strs = []; let strPtr = STR_AT; const strAt = s => { const codes = toCodes(s); const at = strPtr; strs.push({ at, codes }); strPtr += codes.length; return { at, len: codes.length }; };
+  const textCall = (s, x, yy, col, sc) => { const r = strAt(s); return [...c(r.at), ...c(r.len), ...c(x), ...c(yy), ...c(col), ...c(sc), ...call(F.text)]; };
+
+  // ---- the program's own parts ----
+  const parts = []; const multi = P.screens.length > 1;
+  const onScreen = (k, code) => multi ? [...c(SCREEN_AT), ...LD32, ...c(k), I.eq, ...IF, ...code, END] : code;
+  const startBody = [...Object.entries(P.init).flatMap(([n, v]) => [...c(VARS_AT + 8 * P.vars[n]), ...C(v), ...ST64]), ...P.events.filter(e => e.kind === 'start').flatMap(e => runActions(e, {}))];
+  parts.push({ label: 'Start: starting values and “When the app opens”', bytes: startBody });
+  const draw = [...c(0), ...c(0), ...c(W), ...c(H), ...c(P.bg), ...call(F.rect)];
+  parts.push({ label: 'Paint the screen', bytes: draw.slice() });
+  const pressActs = lab => P.events.filter(e => e.kind === 'press' && e.labels.includes(lab)).flatMap(e => runActions(e, { label: lab, digit: /^\d$/.test(lab) ? +lab : undefined }));
+  const click = [];
+  P.screens.forEach((sc, k) => {
+    const d = [], tag = multi ? ` (“${sc.name}” screen)` : '';
+    for (const t of sc.lay.titles) { const b = textCall(t.text, t.x, t.y, t.colour, t.sc); d.push(...b); parts.push({ label: `Write “${t.text}”${tag}`, bytes: b }); }
+    for (const dp of sc.lay.displays) {
+      const b = [];
+      if (dp.label) b.push(...textCall(dp.label, 6, dp.ly, 1, 1));
+      b.push(...c(4), ...c(dp.y), ...c(152), ...c(dp.h), ...c(dp.back), ...call(F.rect));
+      b.push(...(dp.stored ? [...c(DISP_AT + 8 * dp.idx), ...LD64] : expr(dp.expr, {})), ...c(152), ...c(dp.y + ((dp.h - GH * dp.sc) >> 1)), ...c(dp.ink), ...c(dp.sc), ...c(dp.money ? 1 : 0), ...call(F.num));
+      d.push(...b); parts.push({ label: `Display${dp.label ? ' “' + dp.label + '”' : ''}${dp.stored ? '' : ': ' + dp.expr}${tag}`, bytes: b });
+    }
+    if (sc.box) {
+      const b = [];
+      if (sc.box.label) b.push(...textCall(sc.box.label, 6, sc.box.ly, 1, 1));
+      b.push(...c(4), ...c(sc.box.y), ...c(152), ...c(20), ...c(0), ...call(F.rect), ...c(BOX_AT + 1), ...c(BOX_AT), ...LD8, ...c(8), ...c(sc.box.y + 3), ...c(1), ...c(2), ...call(F.text),
+        ...c(BOX_AT), ...LD8, ...c(GW * 2), I.mul, ...c(8), I.add, ...c(sc.box.y + 3), ...c(2), ...c(14), ...c(10), ...call(F.rect));
+      d.push(...b); parts.push({ label: `Text box “${sc.box.name}”${tag}`, bytes: b });
+    }
+    if (sc.list) { const b = [...c(LIST_AT), ...c(sc.list.y), ...c(1), ...call(F.listdraw)]; d.push(...b); parts.push({ label: `List “${sc.list.name}”${tag}`, bytes: b }); }
+    for (const bt of sc.lay.buttons) {
+      const kd = kindOf(bt.lab), col = P.colours['w:' + bt.lab] ?? P.colours[kd] ?? 8, b = [];
+      if (P.round) { const r = (Math.min(bt.w, bt.h) >> 1) - 1; b.push(...c(bt.x + (bt.w >> 1)), ...c(bt.y + (bt.h >> 1)), ...c(r), ...c(col), ...call(F.circle)); }
+      else b.push(...c(bt.x), ...c(bt.y), ...c(bt.w), ...c(bt.h), ...c(col), ...call(F.rect));
+      const room = P.round ? Math.min(bt.w, bt.h) - 8 : bt.w - 6, s2 = textW(bt.lab, 2) <= room ? 2 : 1;
+      b.push(...textCall(bt.lab, bt.x + ((bt.w - textW(bt.lab, s2)) >> 1), bt.y + ((bt.h - GH * s2) >> 1), P.ink, s2));
+      d.push(...b); parts.push({ label: `Button ${bt.lab}${tag}`, bytes: b });
+    }
+    for (const dr of sc.draws) {
+      const b = []; let xy;
+      try { xy = [pixel(dr.x), pixel(dr.y)]; } catch (err) { throw new Error(`Line ${dr.line.n}, “${dr.line.raw}”: ${err.message}`); }
+      const half = dr.size >> 1;
+      if (dr.shape === 'circle') b.push(...xy[0], ...xy[1], ...c(half), ...c(dr.colour), ...call(F.circle));
+      else if (dr.shape === 'square') b.push(...xy[0], ...c(half), I.sub, ...xy[1], ...c(half), I.sub, ...c(dr.size), ...c(dr.size), ...c(dr.colour), ...call(F.rect));
+      else b.push(...xy[0], ...c(dr.size * 3 >> 1), I.sub, ...xy[1], ...c(half), I.sub, ...c(dr.size * 3), ...c(dr.size), ...c(dr.colour), ...call(F.rect));
+      d.push(...b); parts.push({ label: `Draw a ${dr.shape} at ${dr.x}, ${dr.y}${tag}`, bytes: b });
+    }
+    draw.push(...onScreen(k, d));
+    const cl = [];
+    for (const bt of sc.lay.buttons) {
+      const acts = pressActs(bt.lab); if (!acts.length) continue;
+      const b = [...g(0), ...c(bt.x), I.ge, ...g(0), ...c(bt.x + bt.w), I.lt, I.and, ...g(1), ...c(bt.y), I.ge, I.and, ...g(1), ...c(bt.y + bt.h), I.lt, I.and, ...IF, ...acts, RET, END];
+      cl.push(...b); parts.push({ label: `When ${bt.lab} is pressed${tag}`, bytes: b });
+    }
+    const itemEv = P.events.filter(e => e.kind === 'item');
+    if (itemEv.length && sc.list) {
+      const b = [...g(1), ...c(sc.list.y), I.ge, ...g(1), ...c(sc.list.y + LIST_MAX * ROW), I.lt, I.and, ...IF,
+        ...g(1), ...c(sc.list.y), I.sub, ...c(ROW), I.divs, ...st(2), ...itemEv.flatMap(e => runActions(e, { item: true })), RET, END];
+      cl.push(...b); parts.push({ label: `When an item in “${sc.list.name}” is clicked`, bytes: b });
+    }
+    click.push(...onScreen(k, cl));
+  });
+  // keyboard: arrows/space/enter events, typing into the text box, keys that match buttons
+  const KEYS = { '+':[43], '-':[45], '×':[42,120], '÷':[47], '=':[61], '.':[46,44], 'C':[27,99] };
+  const key = [];
+  for (const [name, code] of Object.entries(KEY)) { const a = pressActs('KEY:' + name); if (a.length) key.push(...g(0), ...c(code), I.eq, ...IF, ...a, RET, END); }
+  const enterActs = pressActs('ENTER');
+  if (enterActs.length) key.push(...g(0), ...c(13), I.eq, ...IF, ...enterActs, RET, END);
+  P.screens.forEach((sc, k) => {
+    const kk = [];
+    if (!enterActs.length && !pressActs('KEY:enter').length && sc.lay.buttons.some(b => b.lab === '=')) { const a = pressActs('='); if (a.length) kk.push(...g(0), ...c(13), I.eq, ...IF, ...a, RET, END); }
+    if (sc.box) kk.push(...c(BOX_AT), ...g(0), ...call(F.boxkey), RET);
+    else for (const bt of sc.lay.buttons) {
+      const codes = /^\d$/.test(bt.lab) ? [48 + +bt.lab] : KEYS[bt.lab]; if (!codes) continue;
+      const a = pressActs(bt.lab); if (!a.length) continue;
+      for (const kc of codes) kk.push(...g(0), ...c(kc), I.eq, ...IF, ...a, RET, END);
+    }
+    key.push(...onScreen(k, kk));
+  });
+  if (key.length) parts.push({ label: 'Keyboard: arrows, Enter, typing and button shortcuts', bytes: key });
+  const tickEv = P.events.filter(e => e.kind === 'tick');
+  const tick = [...c(TICK_AT), ...c(TICK_AT), ...LD32, ...c(1), I.add, ...ST32];
+  for (const e of tickEv) { const a = runActions(e, {}); tick.push(...(e.every === 1 ? a : [...c(TICK_AT), ...LD32, ...c(e.every), I.remu, I.eqz, ...IF, ...a, END])); }
+  if (tickEv.length) parts.push({ label: 'Timers: “Every …”', bytes: tick.slice(10) });
+
+  // ---- what the host should keep between visits ----
+  const keep = P.keep.map(n => {
+    if (P.named[n] === 'list') return { name: n, at: LIST_AT, len: 4 + LIST_MAX * 20 };
+    if (P.named[n] === 'box') return { name: n, at: BOX_AT, len: 1 + BOX_MAX };
+    const v = varIndex(n); return { name: n, at: VARS_AT + 8 * v, len: 8 };
+  });
+
+  // ---- assemble the module ----
+  const sec = (id, b) => [id, ...uleb(b.length), ...b];
+  const nm = s => [...uleb(s.length), ...[...s].map(ch => ch.charCodeAt(0))];
+  const T = (params, results = []) => [0x60, params.length, ...params, results.length, ...results];
+  const i32 = 0x7f, i64 = 0x7e;
+  const types = [T([]), T([i32, i32]), T([i32]), T([i32, i32, i32, i32, i32]), T([i32, i32, i32, i32, i32, i32]), T([i64, i32, i32, i32, i32, i32]), T([i32, i32, i32, i32]), T([i64, i64], [i64]), T([i32, i32, i32])];
+  const fnTypes = [0, 0, 1, 2, 0, 3, 3, 4, 5, 6, 7, 7, 1, 2, 1, 1, 8, 8, 7];
+  const body = (locals, code) => { const decl = [locals.length, ...locals.flatMap(([n, t]) => [n, t])]; const b = [...decl, ...code, END]; return [...uleb(b.length), ...b]; };
+  const bodies = [body([], startBody), body([], draw), body([[1, i32]], click), body([], key), body([], tick),
+    body(lib.rect, lib.rect.code), body(lib.glyph, lib.glyph.code), body(lib.text, lib.text.code), body(lib.num, lib.num.code), body(lib.circle, lib.circle.code),
+    body(lib.mul, lib.mul.code), body(lib.div, lib.div.code), body(lib.tdigit, lib.tdigit.code), body(lib.tpoint, lib.tpoint.code), body(lib.boxkey, lib.boxkey.code),
+    body(lib.listadd, lib.listadd.code), body(lib.listdraw, lib.listdraw.code), body(lib.listclick, lib.listclick.code), body(lib.rand, lib.rand.code)];
+  const segs = [{ at: FONT_AT, codes: FONT }, ...strs];
+  const bytes = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...sec(1, [types.length, ...types.flat()]), ...sec(3, [fnTypes.length, ...fnTypes]), ...sec(5, [1, 0, 1]),
+    ...sec(7, [6, ...nm('memory'), 2, 0, ...nm('start'), 0, 0, ...nm('draw'), 0, 1, ...nm('click'), 0, 2, ...nm('key'), 0, 3, ...nm('tick'), 0, 4]),
+    ...sec(10, [bodies.length, ...bodies.flat()]),
+    ...sec(11, [segs.length, ...segs.flatMap(s => [0, ...c(s.at), END, ...uleb(s.codes.length), ...s.codes])])]);
+  const libBytes = bodies.slice(5).reduce((n, b) => n + b.length, 0) + FONT.length;
+  return { bytes, parts, screens: P.screens.map(sc => ({ name: sc.name, buttons: sc.lay.buttons, list: sc.list, box: sc.box })), layout: { buttons: allButtons }, list: P.list, box: P.box,
+    keep, usesTimer: tickEv.length > 0, width: W, height: H, sizes: { total: bytes.length, yours: bodies.slice(0, 5).reduce((n, b) => n + b.length, 0), library: libBytes },
+    memory: { SEED_AT, TICK_AT, SCREEN_AT, VARS_AT, DISP_AT, BOX_AT, LIST_AT }, vars: P.vars, KEY };
+}
+
+
+// Experiment A tasks: plain-English number jobs, each with a reference answer used ONLY to grade (never shown to the AI).
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const isPrime = n => { if (n < 2) return 0; for (let i = 2; i * i <= n; i++) if (n % i === 0) return 0; return 1; };
+const LAB_TASKS = [
+  { id: 'add3', spec: 'Add three numbers together.', params: ['a', 'b', 'c'], ref: (a, b, c) => a + b + c, inputs: [[1, 2, 3], [10, -4, 7], [0, 0, 0], [100, 200, 300]] },
+  { id: 'max3', spec: 'Return the largest of three numbers.', params: ['a', 'b', 'c'], ref: Math.max, inputs: [[1, 2, 3], [9, -4, 7], [-5, -2, -9], [4, 4, 1]] },
+  { id: 'absdiff', spec: 'How far apart are two numbers? Return the distance between them, never negative.', params: ['a', 'b'], ref: (a, b) => Math.abs(a - b), inputs: [[3, 9], [9, 3], [-4, 6], [5, 5]] },
+  { id: 'clamp', spec: 'Keep x between low and high: if x is below low return low, if above high return high, otherwise x.', params: ['x', 'low', 'high'], ref: (x, l, h) => Math.min(h, Math.max(l, x)), inputs: [[5, 1, 10], [-3, 0, 9], [50, 0, 9], [0, 0, 0]] },
+  { id: 'sign', spec: 'Return -1 if the number is negative, 0 if it is zero, and 1 if it is positive.', params: ['n'], ref: n => Math.sign(n), inputs: [[-7], [0], [12], [-1]] },
+  { id: 'leap', spec: 'Return 1 if the year is a leap year, otherwise 0.', params: ['year'], ref: y => +((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0), inputs: [[2024], [1900], [2000], [2023], [2100]] },
+  { id: 'factorial', spec: 'Return n factorial (n! = 1 × 2 × … × n, and 0! = 1).', params: ['n'], ref: n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }, inputs: [[0], [1], [5], [10], [12]] },
+  { id: 'fib', spec: 'Return the nth Fibonacci number, where fib(0) = 0 and fib(1) = 1.', params: ['n'], ref: n => { let a = 0, b = 1; for (let i = 0; i < n; i++) [a, b] = [b, a + b]; return a; }, inputs: [[0], [1], [2], [10], [30]] },
+  { id: 'gcd', spec: 'Return the greatest common divisor of two positive whole numbers.', params: ['a', 'b'], ref: (a, b) => { while (b) [a, b] = [b, a % b]; return a; }, inputs: [[12, 18], [17, 5], [100, 25], [48, 180]] },
+  { id: 'lcm', spec: 'Return the smallest number that both a and b divide into exactly (lowest common multiple).', params: ['a', 'b'], ref: (a, b) => { let x = a, y = b; while (y) [x, y] = [y, x % y]; return a / x * b; }, inputs: [[4, 6], [3, 5], [12, 18], [7, 7]] },
+  { id: 'power', spec: 'Return a raised to the power b (b is 0 or more).', params: ['a', 'b'], ref: (a, b) => a ** b, inputs: [[2, 10], [3, 0], [5, 3], [-2, 3]] },
+  { id: 'digitsum', spec: 'Add up the digits of a positive number (e.g. 1234 → 10).', params: ['n'], ref: n => [...String(n)].reduce((s, d) => s + +d, 0), inputs: [[1234], [0], [9], [99999]] },
+  { id: 'digits', spec: 'How many digits does a positive number have? (0 has 1 digit.)', params: ['n'], ref: n => String(n).length, inputs: [[0], [7], [10], [123456]] },
+  { id: 'reverse', spec: 'Reverse the digits of a positive number (e.g. 1234 → 4321, 120 → 21).', params: ['n'], ref: n => +[...String(n)].reverse().join(''), inputs: [[1234], [120], [7], [90001]] },
+  { id: 'palindrome', spec: 'Return 1 if a positive number reads the same backwards (like 12321), otherwise 0.', params: ['n'], ref: n => +(String(n) === [...String(n)].reverse().join('')), inputs: [[12321], [1234], [7], [1001], [10]] },
+  { id: 'prime', spec: 'Return 1 if n is a prime number, otherwise 0.', params: ['n'], ref: isPrime, inputs: [[0], [1], [2], [21], [97], [7919]] },
+  { id: 'nthprime', spec: 'Return the nth prime number, counting from 1 (the 1st prime is 2, the 5th is 11).', params: ['n'], ref: n => { let c = 0, k = 1; while (c < n) { k++; if (isPrime(k)) c++; } return k; }, inputs: [[1], [5], [10], [100]] },
+  { id: 'divisors', spec: 'Count how many whole numbers divide n exactly (n is positive; 12 has 6).', params: ['n'], ref: n => range(1, n).filter(d => n % d === 0).length, inputs: [[1], [12], [13], [100]] },
+  { id: 'perfect', spec: 'Return 1 if n is a perfect number (equal to the sum of its divisors smaller than itself, like 28), otherwise 0.', params: ['n'], ref: n => +(n > 1 && range(1, n - 1).filter(d => n % d === 0).reduce((s, d) => s + d, 0) === n), inputs: [[6], [28], [12], [496], [1]] },
+  { id: 'collatz', spec: 'Count the steps to reach 1 by repeating: if even, halve it; if odd, times 3 plus 1. (1 takes 0 steps.)', params: ['n'], ref: n => { let s = 0; while (n !== 1) { n = n % 2 ? 3 * n + 1 : n / 2; s++; } return s; }, inputs: [[1], [6], [7], [27]] },
+  { id: 'isqrt', spec: 'Return the whole-number square root of n, rounded down (e.g. 17 → 4).', params: ['n'], ref: n => Math.floor(Math.sqrt(n)), inputs: [[0], [1], [17], [100], [99999]] },
+  { id: 'popcount', spec: 'How many 1s are there when n is written in binary?', params: ['n'], ref: n => [...(n >>> 0).toString(2)].filter(b => b === '1').length, inputs: [[0], [7], [255], [1024]] },
+  { id: 'sumsquares', spec: 'Return 1² + 2² + … + n².', params: ['n'], ref: n => range(1, n).reduce((s, k) => s + k * k, 0), inputs: [[0], [1], [3], [10]] },
+  { id: 'digitalroot', spec: 'Keep adding the digits of n until only one digit is left (e.g. 9875 → 29 → 11 → 2).', params: ['n'], ref: n => { while (n > 9) n = [...String(n)].reduce((s, d) => s + +d, 0); return n; }, inputs: [[9875], [0], [5], [99999]] },
+  { id: 'daysinmonth', spec: 'How many days are in this month? Month is 1–12; the year matters for February.', params: ['month', 'year'], ref: (m, y) => new Date(y, m, 0).getDate(), inputs: [[1, 2023], [2, 2023], [2, 2024], [4, 2023], [2, 1900]] },
+  { id: 'triangle', spec: 'Given three side lengths, return 0 if they cannot make a triangle, 1 if all sides are equal, 2 if exactly two are equal, 3 if all are different.', params: ['a', 'b', 'c'], ref: (a, b, c) => (a + b <= c || a + c <= b || b + c <= a) ? 0 : (a === b && b === c) ? 1 : (a === b || b === c || a === c) ? 2 : 3, inputs: [[3, 3, 3], [3, 4, 5], [5, 5, 8], [1, 2, 10]] },
+  { id: 'ctof', spec: 'Convert Celsius to Fahrenheit, rounding down to a whole number (C × 9 ÷ 5 + 32).', params: ['c'], ref: c => Math.floor(c * 9 / 5) + 32, inputs: [[0], [100], [37], [-40]] },
+  { id: 'evensum', spec: 'Add up all the even numbers from 1 to n.', params: ['n'], ref: n => range(1, n).filter(k => k % 2 === 0).reduce((s, k) => s + k, 0), inputs: [[0], [1], [10], [101]] },
+  { id: 'change', spec: 'What is the fewest coins (50, 20, 10, 5, 2 and 1) needed to make this amount?', params: ['pence'], ref: p => { let c = 0; for (const k of [50, 20, 10, 5, 2, 1]) { c += Math.floor(p / k); p %= k; } return c; }, inputs: [[0], [3], [88], [199]] },
+  { id: 'secondsclock', spec: 'Turn a number of seconds into a clock number HHMM (hours and minutes, ignoring leftover seconds), e.g. 3725 seconds → 102 (1 hour 2 minutes).', params: ['s'], ref: s => Math.floor(s / 3600) * 100 + Math.floor(s % 3600 / 60), inputs: [[0], [3725], [59], [86399]] }
+].map(t => ({ ...t, tests: t.inputs.map(a => [a, t.ref(...a) | 0]) }));
+const LAB_APPS = [
+  'A calculator for adding up a shopping bill',
+  'A counter for how many glasses of water I drank today',
+  'A 25 minute study timer with start and pause',
+  'Roll two dice and show both',
+  'A tip calculator where I can pick 10, 12.5 or 15 percent',
+  'Convert miles to kilometres',
+  'A to-do list for my weekend',
+  'A score keeper for a football match between two teams',
+  'Split the rent between flatmates',
+  'A coin flip that counts heads and tails',
+  'A countdown from 60 seconds that stops at zero',
+  'Work out my BMI from height and weight',
+  'A quiz on adding numbers with a results screen',
+  'A game where I move a paddle to catch a falling ball',
+  'A savings tracker: how much I have saved towards a goal of 500 pounds',
+  'A pocket money calculator: weekly amount times number of weeks',
+  'Count down the days left in a 30 day challenge',
+  'A shopping list that remembers my items',
+  'Hours and minutes to minutes converter',
+  'A reaction game: press the button as soon as the light turns green'
+];
+
+
+const SPEC = "You translate a person's everyday English into STRUCTURED ENGLISH v0.3, a strict language whose sentences compile to a binary app for a 160x240 \"tiny phone\". Only these sentence patterns exist. Write nothing else.\n\nSCREEN AND TEXT\n- The screen is <colour>.\n- Write \"TEXT\" at the top in <colour>.            (titles; capital letters, digits, + - . % : ! ? only)\nDISPLAYS (up to 4)\n- A display shows numbers in <colour>.            (value set by \"Show ...\" actions)\n- A display, labelled \"TEXT\", shows <expression> [as money] in <colour> [on <colour>].   (updates itself)\nBUTTONS\n- Buttons, <one..six> per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 . + = \"WORD\" \"10%\".   (words must be in quotes)\n- You can have several \"Buttons\" sentences; each makes its own rows.\n- The buttons are round.   The buttons are <colour>.   The digit|operation|word|equals|C buttons are <colour>.   The \"WORD\" button is <colour>.\nMEMORY\n- Remember a number called <name> [starting at <number>], a number called <name>, and an operation.\n- A text box called <name>, labelled \"TEXT\".      (at most one; the keyboard types into it)\n- A list called <name>.                            (at most one; up to 6 items)\nSCREENS (optional; for apps with more than one page)\n- On the \"NAME\" screen:      (everything after it, until the next \"On the ... screen:\", belongs to that screen; the first screen is shown first)\nDRAWINGS (for simple games)\n- Draw a <colour> <circle|square|bar> of size <pixels> at <x expression> and <y expression>.   (screen is 160 wide, 240 tall; x and y in pixels)\nSAVING\n- Keep <name>, <name> and <list> between visits.\nEVENTS (header ends with a colon, then indented actions)\n- Every second:   Every tenth of a second:   Every half a second:   Every 5 seconds:\n- When I press left:  right:  up:  down:  space:      (keyboard keys)\n- When I press a digit:  When I press an operation:  When I press equals:  When I press C:  When I press .:  When I press \"WORD\":  When I press enter:\n- When I click an item in <list>:     When the app opens:\nACTIONS\n- <name> becomes <expression>.\n- Type the digit into <name>.   Type a point into <name>.   Clear <name>.   (name can be a number, the text box or the list)\n- Show <expression>.            (needs exactly one \"shows numbers\" display)\n- Remember the operation.       Apply the operation to <name> and <name>, and put the answer in <name>.\n- Add <textbox> to <list>.      Tick it.   Remove it.    (Tick/Remove only inside \"When I click an item in ...\")\n- Go to the \"NAME\" screen.\n- If <expression> is more than|is less than|is at least|is at most|is|is not <expression>, <action>.\nEXPRESSIONS: numbers (decimals allowed), names, \"the digit\", \"a random number from 1 to 6\", plus, minus, times, divided by, percent, \"15 percent of bill\", brackets. 2 decimal places.\nCOLOURS: black white red green blue orange purple teal grey salmon lime sky yellow lilac charcoal pink\nSPACE: the screen is small. Keep to about 4 displays, or a list, plus at most 5 rows of buttons.\n\nEXAMPLE 1:\n# A stopwatch\nThe screen is charcoal.\nWrite \"STOPWATCH\" at the top in white.\nRemember a number called time, and a number called running.\nA display shows time in lime.\nButtons, two per row: \"START\" \"STOP\".\nButtons, one per row: \"RESET\".\nThe \"START\" button is green.\nThe \"STOP\" button is salmon.\n\nEvery tenth of a second:\n  If running is 1, time becomes time plus 0.1.\nWhen I press \"START\":\n  Running becomes 1.\nWhen I press \"STOP\":\n  Running becomes 0.\nWhen I press \"RESET\":\n  Running becomes 0.\n  Time becomes 0.\n\nEXAMPLE 2:\n# A times table quiz with two screens\nThe screen is purple.\nRemember a number called a, a number called b, a number called answer, a number called score, and a number called asked.\nKeep score and asked between visits.\n\nWhen the app opens:\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n\nOn the \"QUESTION\" screen:\nWrite \"WHAT IS A \u00d7 B ?\" at the top in white.\nA display, labelled \"A\", shows a in white on black.\nA display, labelled \"B\", shows b in white on black.\nA display, labelled \"YOUR ANSWER\", shows answer in yellow on black.\nButtons, five per row: 1 2 3 4 5 6 7 8 9 0.\nButtons, two per row: \"CLEAR\" \"CHECK\".\nThe \"CHECK\" button is green.\n\nOn the \"RESULT\" screen:\nWrite \"THE ANSWER WAS\" at the top in white.\nA display shows a times b in lime on black.\nA display, labelled \"YOU SAID\", shows answer in yellow on black.\nA display, labelled \"SCORE\", shows score in white on black.\nA display, labelled \"QUESTIONS\", shows asked in white on black.\nButtons, one per row: \"NEXT QUESTION\".\n\nWhen I press a digit:\n  Answer becomes answer times 10 plus the digit.\nWhen I press \"CLEAR\":\n  Answer becomes 0.\nWhen I press \"CHECK\":\n  If answer is a times b, score becomes score plus 1.\n  Asked becomes asked plus 1.\n  Go to the \"RESULT\" screen.\nWhen I press \"NEXT QUESTION\":\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n  Answer becomes 0.\n  Go to the \"QUESTION\" screen.\n\nEXAMPLE 3:\n# A tip calculator\nThe screen is charcoal.\nWrite \"TIP CALCULATOR\" at the top in white.\nRemember a number called bill, and a number called rate starting at 15.\nA display, labelled \"BILL\", shows bill as money in lime.\nA display, labelled \"TIP\", shows rate percent of bill as money in yellow.\nA display, labelled \"TOTAL\", shows bill plus rate percent of bill as money in sky.\nButtons, three per row: \"10%\" \"15%\" \"20%\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\nThe word buttons are purple.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"10%\":\n  Rate becomes 10.\nWhen I press \"15%\":\n  Rate becomes 15.\nWhen I press \"20%\":\n  Rate becomes 20.\n\nEXAMPLE 4:\n# A to-do list\nThe screen is charcoal.\nWrite \"MY TO DO LIST\" at the top in yellow.\nA text box called task, labelled \"NEW TASK (TYPE IT)\".\nA list called tasks.\nButtons, two per row: \"ADD\" \"CLEAR ALL\".\nThe \"CLEAR ALL\" button is salmon.\n\nWhen I press \"ADD\":\n  Add task to tasks.\nWhen I press enter:\n  Add task to tasks.\nWhen I press \"CLEAR ALL\":\n  Clear tasks.\nWhen I click an item in tasks:\n  Tick it.\n\nYOUR REPLY FORMAT, exactly:\n<se>\n...structured english program...\n</se>\n<note>one plain sentence: what you built, and anything the person asked for that the language cannot do yet</note>\n\nIf the request is too vague to build anything sensible, reply ONLY with:\n<question>one short question</question>";
+const DEMOS = {"Calculator": "# A calculator with decimals\nThe screen is charcoal.\nWrite \"CALCULATOR\" at the top in grey.\nA display shows numbers in lime.\nButtons, four per row: 7 8 9 \u00f7 4 5 6 \u00d7 1 2 3 \u2212 C 0 . +.\nButtons, one per row: =.\nRemember a number called entry, a number called total, and an operation.\n\nWhen I press a digit:\n  Type the digit into entry.\n  Show entry.\n\nWhen I press .:\n  Type a point into entry.\n  Show entry.\n\nWhen I press an operation:\n  Total becomes entry.\n  Remember the operation.\n  Clear entry.\n\nWhen I press equals:\n  Apply the operation to total and entry, and put the answer in entry.\n  Show entry.\n\nWhen I press C:\n  Clear entry.\n  Total becomes 0.\n  Show entry.\n", "Tip calculator": "# A tip calculator\nThe screen is charcoal.\nWrite \"TIP CALCULATOR\" at the top in white.\nRemember a number called bill, and a number called rate starting at 15.\nA display, labelled \"BILL\", shows bill as money in lime.\nA display, labelled \"TIP\", shows rate percent of bill as money in yellow.\nA display, labelled \"TOTAL\", shows bill plus rate percent of bill as money in sky.\nButtons, three per row: \"10%\" \"15%\" \"20%\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\nThe word buttons are purple.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"10%\":\n  Rate becomes 10.\nWhen I press \"15%\":\n  Rate becomes 15.\nWhen I press \"20%\":\n  Rate becomes 20.\n", "Bill splitter": "# Split a bill between friends\nThe screen is teal.\nWrite \"SPLIT THE BILL\" at the top in white.\nRemember a number called bill, and a number called people starting at 2.\nA display, labelled \"BILL\", shows bill as money in white on black.\nA display, labelled \"PEOPLE\", shows people in white on black.\nA display, labelled \"EACH PAYS\", shows bill divided by people as money in yellow on black.\nButtons, two per row: \"FEWER\" \"MORE\".\nButtons, four per row: 7 8 9 C 4 5 6 . 1 2 3 0.\n\nWhen I press a digit:\n  Type the digit into bill.\nWhen I press .:\n  Type a point into bill.\nWhen I press C:\n  Clear bill.\nWhen I press \"MORE\":\n  People becomes people plus 1.\nWhen I press \"FEWER\":\n  If people is more than 1, people becomes people minus 1.\n", "To-do list": "# A to-do list\nThe screen is charcoal.\nWrite \"MY TO DO LIST\" at the top in yellow.\nA text box called task, labelled \"NEW TASK (TYPE IT)\".\nA list called tasks.\nKeep tasks between visits.\nButtons, two per row: \"ADD\" \"CLEAR ALL\".\nThe \"CLEAR ALL\" button is salmon.\n\nWhen I press \"ADD\":\n  Add task to tasks.\nWhen I press enter:\n  Add task to tasks.\nWhen I press \"CLEAR ALL\":\n  Clear tasks.\nWhen I click an item in tasks:\n  Tick it.\n", "Stopwatch": "# A stopwatch\nThe screen is charcoal.\nWrite \"STOPWATCH\" at the top in white.\nRemember a number called time, and a number called running.\nA display shows time in lime.\nButtons, two per row: \"START\" \"STOP\".\nButtons, one per row: \"RESET\".\nThe \"START\" button is green.\nThe \"STOP\" button is salmon.\n\nEvery tenth of a second:\n  If running is 1, time becomes time plus 0.1.\nWhen I press \"START\":\n  Running becomes 1.\nWhen I press \"STOP\":\n  Running becomes 0.\nWhen I press \"RESET\":\n  Running becomes 0.\n  Time becomes 0.\n", "Dice": "# A dice roller\nThe screen is green.\nWrite \"DICE ROLLER\" at the top in white.\nRemember a number called die starting at 1, a number called total, and a number called rolls.\nA display, labelled \"YOU ROLLED\", shows die in white on black.\nA display, labelled \"ROLLS\", shows rolls in sky on black.\nA display, labelled \"TOTAL\", shows total in yellow on black.\nButtons, one per row: \"ROLL\".\nButtons, one per row: \"START AGAIN\".\nThe \"START AGAIN\" button is grey.\n\nWhen I press \"ROLL\":\n  Die becomes a random number from 1 to 6.\n  Total becomes total plus die.\n  Rolls becomes rolls plus 1.\nWhen I press space:\n  Die becomes a random number from 1 to 6.\n  Total becomes total plus die.\n  Rolls becomes rolls plus 1.\nWhen I press \"START AGAIN\":\n  Total becomes 0.\n  Rolls becomes 0.\n", "Times table quiz": "# A times table quiz with two screens\nThe screen is purple.\nRemember a number called a, a number called b, a number called answer, a number called score, and a number called asked.\nKeep score and asked between visits.\n\nWhen the app opens:\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n\nOn the \"QUESTION\" screen:\nWrite \"WHAT IS A \u00d7 B ?\" at the top in white.\nA display, labelled \"A\", shows a in white on black.\nA display, labelled \"B\", shows b in white on black.\nA display, labelled \"YOUR ANSWER\", shows answer in yellow on black.\nButtons, five per row: 1 2 3 4 5 6 7 8 9 0.\nButtons, two per row: \"CLEAR\" \"CHECK\".\nThe \"CHECK\" button is green.\n\nOn the \"RESULT\" screen:\nWrite \"THE ANSWER WAS\" at the top in white.\nA display shows a times b in lime on black.\nA display, labelled \"YOU SAID\", shows answer in yellow on black.\nA display, labelled \"SCORE\", shows score in white on black.\nA display, labelled \"QUESTIONS\", shows asked in white on black.\nButtons, one per row: \"NEXT QUESTION\".\n\nWhen I press a digit:\n  Answer becomes answer times 10 plus the digit.\nWhen I press \"CLEAR\":\n  Answer becomes 0.\nWhen I press \"CHECK\":\n  If answer is a times b, score becomes score plus 1.\n  Asked becomes asked plus 1.\n  Go to the \"RESULT\" screen.\nWhen I press \"NEXT QUESTION\":\n  A becomes a random number from 2 to 9.\n  B becomes a random number from 2 to 9.\n  Answer becomes 0.\n  Go to the \"QUESTION\" screen.\n", "Catch the star": "# A small game: catch the falling star\nThe screen is black.\nWrite \"CATCH THE STAR\" at the top in yellow.\nRemember a number called basket starting at 80, a number called star_x starting at 40, a number called star_y starting at 40.\nRemember a number called score, and a number called missed.\nA display, labelled \"CAUGHT\", shows score in white on charcoal.\nDraw a yellow circle of size 10 at star_x and star_y.\nDraw a sky bar of size 8 at basket and 184.\nButtons, two per row: \"LEFT\" \"RIGHT\".\n\nEvery tenth of a second:\n  Star_y becomes star_y plus 5.\n  If star_y is at least 180, if star_x is at least basket minus 16, if star_x is at most basket plus 16, score becomes score plus 1.\n  If star_y is at least 180, star_x becomes a random number from 10 to 150.\n  If star_y is at least 180, star_y becomes 45.\nWhen I press \"LEFT\":\n  If basket is more than 16, basket becomes basket minus 12.\nWhen I press \"RIGHT\":\n  If basket is less than 144, basket becomes basket plus 12.\nWhen I press left:\n  If basket is more than 16, basket becomes basket minus 12.\nWhen I press right:\n  If basket is less than 144, basket becomes basket plus 12.\n", "Counter": "# A counter with round buttons\nThe screen is purple.\nWrite \"COUNTER\" at the top in white.\nRemember a number called count.\nA display shows count in white on black.\nButtons, three per row: \u2212 \"RESET\" +.\nThe buttons are round.\nThe operation buttons are pink.\nThe \"RESET\" button is grey.\n\nWhen I press +:\n  Count becomes count plus 1.\nWhen I press \u2212:\n  If count is more than 0, count becomes count minus 1.\nWhen I press \"RESET\":\n  Count becomes 0.\n", "Temperature": "# Celsius to Fahrenheit\nThe screen is blue.\nWrite \"\u00b0C TO \u00b0F\" at the top in white.\nRemember a number called celsius.\nA display, labelled \"CELSIUS\", shows celsius in white on black.\nA display, labelled \"FAHRENHEIT\", shows celsius times 9 divided by 5 plus 32 in yellow on black.\nButtons, four per row: 7 8 9 C 4 5 6 \u2212 1 2 3 0.\nThe buttons are sky.\nThe C buttons are salmon.\n\nWhen I press a digit:\n  Type the digit into celsius.\nWhen I press \u2212:\n  Celsius becomes 0 minus celsius.\nWhen I press C:\n  Clear celsius.\n"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let sample = null;
+(typeof claude !== 'undefined' && claude.use ? claude.use('sample') : Promise.resolve(null)).then(s => { sample = s; if (!s) { $('off').hidden = false; ['aRun','bRun','dRun'].forEach(id => $(id).disabled = true); } }).catch(() => { $('off').hidden = false; });
+
+// ---------- saved state ----------
+let store = { a: {}, b: {}, pairs: [] };
+try { store = Object.assign(store, JSON.parse(localStorage.getItem('lab-results') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('lab-results', JSON.stringify(store)); } catch (e) {} };
+
+// ---------- the sealed test chamber ----------
+const WORKER = `
+const uleb = (b, i) => { let r = 0, s = 0, x; do { x = b[i++]; r |= (x & 0x7f) << s; s += 7; } while (x & 0x80); return [r >>> 0, i]; };
+function memPages(b) {
+  if (b.length < 8 || b[0] !== 0 || b[1] !== 0x61 || b[2] !== 0x73 || b[3] !== 0x6d) throw new Error('not a WebAssembly binary (it must start 00 61 73 6d)');
+  let i = 8;
+  while (i < b.length) { const id = b[i++]; let size; [size, i] = uleb(b, i); const end = i + size;
+    if (id === 5) { let n; [n, i] = uleb(b, i); for (let k = 0; k < n; k++) { const flags = b[i++]; let init; [init, i] = uleb(b, i); if (init > 16) return init; if (flags & 1) { [, i] = uleb(b, i); } } }
+    i = end; }
+  return 0;
+}
+onmessage = e => {
+  const job = e.data;
+  try {
+    const pages = memPages(job.bytes); if (pages > 16) throw new Error('asked for ' + pages * 64 + ' KB of memory (limit is 1 MB)');
+    const mod = new WebAssembly.Module(job.bytes);
+    if (WebAssembly.Module.imports(mod).length) throw new Error('it asked for outside access, which the lab never gives');
+    const inst = new WebAssembly.Instance(mod, {}); const x = inst.exports;
+    if (job.kind === 'fn') {
+      if (typeof x.run !== 'function') throw new Error('there is no function exported as "run"');
+      const results = job.tests.map(([a, w]) => { let g; try { g = x.run(...a); } catch (err) { g = 'crash (' + err.message + ')'; } return { a, w, g, pass: g === w }; });
+      postMessage({ ok: true, results });
+    } else {
+      new DataView(x.memory.buffer).setUint32(job.seedAt, 99991, true);
+      x.start(); x.draw();
+      for (const [cx, cy] of job.clicks) { x.click(cx, cy); x.draw(); }
+      for (const k of [13, 32, 17, 19, 65, 8]) { x.key(k); x.draw(); }
+      for (let t = 0; t < 30; t++) { x.tick(); if (t % 10 === 9) x.draw(); }
+      for (const [cx, cy] of job.clicks) { x.click(cx, cy); x.draw(); }
+      postMessage({ ok: true });
+    }
+  } catch (err) { postMessage({ ok: false, error: String(err.message || err) }); }
+};`;
+const workerURL = URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' }));
+function inLab(job, ms = 1000) {
+  return new Promise(resolve => {
+    const w = new Worker(workerURL); let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; w.terminate(); resolve({ ok: false, error: 'ran longer than ' + ms / 1000 + ' s (endless loop?) and was shut down' }); } }, ms);
+    w.onmessage = e => { if (done) return; done = true; clearTimeout(t); w.terminate(); resolve(e.data); };
+    w.onerror = e => { if (done) return; done = true; clearTimeout(t); w.terminate(); resolve({ ok: false, error: e.message || 'the worker failed' }); };
+    w.postMessage(job);
+  });
+}
+
+// ---------- talking to Claude ----------
+async function ask(messages, tier, statusEl) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { const r = await sample(messages, { modelTier: tier, cache: false }); return r.text; }
+    catch (e) {
+      if (e?.code === 'rate_limited' && attempt < 3) { for (let s = 30; s > 0; s--) { statusEl.textContent = `Claude is busy. Waiting ${s} s, then trying again…`; await sleep(1000); } continue; }
+      throw e;
+    }
+  }
+}
+const hexOf = t => { const m = t.match(/<hex>([\s\S]*?)<\/hex>/); const h = (m ? m[1] : t).replace(/0x/gi, '').replace(/[^0-9a-f]/gi, ''); return new Uint8Array((h.match(/../g) || []).map(x => parseInt(x, 16))); };
+const ulebW = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+function wrapBody(body, nParams) {
+  const sec = (id, b) => [id, ...ulebW(b.length), ...b];
+  const type = [1, 0x60, nParams, ...Array(nParams).fill(0x7f), 1, 0x7f];
+  return new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, ...sec(1, type), ...sec(3, [1, 0]), ...sec(7, [1, 3, 0x72, 0x75, 0x6e, 0, 0]), ...sec(10, [1, ...ulebW(body.length), ...body])]);
+}
+const PROMPT = {
+  whole: t => `Write a complete WebAssembly binary module, as hex bytes. Do NOT write WAT, assembly or any source code first: output the bytes directly.
+Requirements: the 8-byte header (magic + version 1); one function type with ${t.params.length} i32 parameter${t.params.length > 1 ? 's' : ''} and one i32 result; one function; export it with the name "run" (export kind 0 = function, index 0); a code section with correct LEB128 sizes. Use only i32 instructions. No imports, no memory.
+The inputs, in order: ${t.params.join(', ')} (local ${t.params.map((p, i) => i + ' = ' + p).join(', ')}).
+What it must do: ${t.spec}
+Reply with ONLY the bytes inside <hex></hex>.`,
+  body: t => `Write only the BODY of a WebAssembly function, as hex bytes. Do NOT write WAT or any source code: output the bytes directly.
+The function has ${t.params.length} i32 parameter${t.params.length > 1 ? 's' : ''} (local ${t.params.map((p, i) => i + ' = ' + p).join(', ')}) and returns one i32.
+Start with the local-declarations vector (00 for no extra locals; 01 03 7f declares three extra i32 locals, numbered after the parameters), then the instructions, and end with 0b. Do NOT include the body size or any section headers; those are added for you. Use only i32 instructions.
+What it must do: ${t.spec}
+Reply with ONLY the bytes inside <hex></hex>.`
+};
+const failText = r => r.ok ? r.results.filter(x => !x.pass).slice(0, 3).map(x => `run(${x.a.join(', ')}) gave ${x.g}, but the right answer is ${x.w}`).join('; ') : r.error;
+
+// ---------- Experiment A ----------
+const METHODS = { whole: 'Whole binary', body: 'Body only' };
+let stopA = false;
+function renderA() {
+  const ids = Object.keys(store.a); const rows = LAB_TASKS.filter(t => store.a[t.id]);
+  $('aRows').innerHTML = rows.map(t => { const r = store.a[t.id]; const cell = m => { const x = r[m]; if (!x) return '<td class="r w">–</td>'; return `<td class="r ${x.pass ? 'p' : 'f'}" data-l="${METHODS[m]}" title="${esc(x.last || '')}">${x.pass ? '✓' : '✗'} ${x.pass ? (x.tries === 1 ? 'first try' : 'after ' + x.tries + ' tries') : 'failed (' + x.tries + ' tries)'} · ${x.bytes} B</td>`; };
+    return `<tr><td data-l="Task">${esc(t.spec)}</td>${cell('whole')}${cell('body')}</tr>`; }).join('');
+  const bars = [];
+  for (const m of ['whole', 'body']) {
+    const done = rows.filter(t => store.a[t.id][m]); if (!done.length) continue;
+    const first = done.filter(t => store.a[t.id][m].pass && store.a[t.id][m].tries === 1).length, fin = done.filter(t => store.a[t.id][m].pass).length;
+    bars.push([`${METHODS[m]}: first try`, first, done.length, 'first'], [`${METHODS[m]}: with repair`, fin, done.length, '']);
+  }
+  $('aBoard').innerHTML = bars.map(([l, n, d, cls]) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill ${cls}" style="width:${d ? n / d * 100 : 0}%"></div></div><span class="n">${n}/${d} · ${d ? Math.round(n / d * 100) : 0}%</span></div>`).join('');
+}
+$('aRun').addEventListener('click', async () => {
+  if (!sample) return;
+  const methods = ['whole', 'body'].filter(m => $(m === 'whole' ? 'mWhole' : 'mBody').checked); if (!methods.length) { $('aStatus').textContent = 'Tick at least one method.'; return; }
+  const tasks = LAB_TASKS.slice(0, +$('aCount').value), tries = +$('aTries').value, tier = $('aTier').value;
+  stopA = false; $('aRun').disabled = true; $('aStop').disabled = false;
+  try {
+    for (const [ti, t] of tasks.entries()) for (const m of methods) {
+      if (stopA) throw new Error('stopped');
+      $('aStatus').textContent = `Task ${ti + 1}/${tasks.length}: ${t.id} · ${METHODS[m]}…`;
+      const convo = [{ role: 'user', content: PROMPT[m](t) }]; let res = null, k = 0, size = 0;
+      for (k = 1; k <= tries; k++) {
+        const text = await ask(convo, tier, $('aStatus')); convo.push({ role: 'assistant', content: text });
+        const raw = hexOf(text); const bytes = m === 'body' ? wrapBody([...raw], t.params.length) : raw; size = bytes.length;
+        res = await inLab({ kind: 'fn', bytes, tests: t.tests });
+        if (res.ok && res.results.every(x => x.pass)) break;
+        if (k < tries) convo.push({ role: 'user', content: `That failed in testing: ${failText(res)}. Fix it and reply with the complete corrected bytes in the same <hex></hex> format.` });
+      }
+      const pass = !!(res && res.ok && res.results.every(x => x.pass));
+      store.a[t.id] = store.a[t.id] || {}; store.a[t.id][m] = { pass, tries: Math.min(k, tries), bytes: size, last: pass ? '' : failText(res), tier };
+      save(); renderA();
+    }
+    $('aStatus').textContent = 'Experiment A finished.';
+  } catch (e) { $('aStatus').textContent = e.message === 'stopped' ? 'Stopped. Results so far are saved.' : e?.code === 'not_granted' ? 'Permission to ask Claude was not given.' : 'Stopped: ' + (e.message || e); }
+  finally { $('aRun').disabled = false; $('aStop').disabled = true; }
+});
+$('aStop').addEventListener('click', () => { stopA = true; });
+
+// ---------- Experiment B ----------
+let stopB = false;
+const tag = (s, n) => { const m = s.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`)); return m ? m[1].trim() : null; };
+function renderB() {
+  const rows = LAB_APPS.filter(a => store.b[a]);
+  $('bRows').innerHTML = rows.map(a => { const r = store.b[a];
+    return `<tr><td data-l="Request">${esc(a)}</td><td class="r ${r.compiled ? 'p' : 'f'}" data-l="Compiled" title="${esc(r.error || '')}">${r.compiled ? '✓ ' + (r.tries === 1 ? 'first try' : 'after ' + r.tries + ' tries') : r.question ? '? asked a question' : '✗ failed'}</td><td class="r ${r.runs ? 'p' : r.compiled ? 'f' : 'w'}" data-l="Runs safely" title="${esc(r.runError || '')}">${r.compiled ? (r.runs ? '✓ no crash' : '✗ ' + esc(r.runError || 'crashed')) : '–'}</td><td class="r" data-l="Size">${r.size ? r.size.toLocaleString() + ' B' : '–'}</td></tr>`; }).join('');
+  if (!rows.length) { $('bBoard').innerHTML = ''; return; }
+  const first = rows.filter(a => store.b[a].compiled && store.b[a].tries === 1).length, comp = rows.filter(a => store.b[a].compiled).length, runs = rows.filter(a => store.b[a].runs).length;
+  $('bBoard').innerHTML = [['Compiled first try', first, 'first'], ['Compiled with repair', comp, ''], ['Compiled and runs safely', runs, '']].map(([l, n, cls]) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill ${cls}" style="width:${n / rows.length * 100}%"></div></div><span class="n">${n}/${rows.length} · ${Math.round(n / rows.length * 100)}%</span></div>`).join('');
+}
+async function makeApp(request, tier, statusEl) {
+  const convo = [{ role: 'user', content: SPEC + '\n\nREQUEST: ' + request }];
+  for (let k = 1; k <= 3; k++) {
+    const text = await ask(convo, tier, statusEl); convo.push({ role: 'assistant', content: text });
+    const q = tag(text, 'question'); if (q) return { compiled: false, question: q, tries: k };
+    const se = tag(text, 'se'); if (!se) { convo.push({ role: 'user', content: 'Reply using exactly the <se> and <note> format.' }); continue; }
+    try { const r = compileSE3(se); return { compiled: true, tries: k, se, r }; }
+    catch (err) { if (k < 3) convo.push({ role: 'user', content: `The compiler rejected it with this error: ${err.message}\nFix it. Use only the allowed patterns. Same reply format.` }); else return { compiled: false, tries: k, error: err.message, se }; }
+  }
+  return { compiled: false, tries: 3, error: 'no usable reply' };
+}
+async function runApp(r) {
+  const clicks = r.screens.flatMap(s => s.buttons.map(b => [b.x + (b.w >> 1), b.y + (b.h >> 1)]));
+  if (r.list) clicks.push([60, r.list.y + 6]);
+  return inLab({ kind: 'app', bytes: r.bytes, clicks, seedAt: r.memory.SEED_AT }, 3000);
+}
+$('bRun').addEventListener('click', async () => {
+  if (!sample) return;
+  const apps = LAB_APPS.slice(0, +$('bCount').value), tier = $('bTier').value;
+  stopB = false; $('bRun').disabled = true; $('bStop').disabled = false;
+  try {
+    for (const [i, a] of apps.entries()) {
+      if (stopB) throw new Error('stopped');
+      $('bStatus').textContent = `Request ${i + 1}/${apps.length}: “${a}”…`;
+      const out = await makeApp(a, tier, $('bStatus'));
+      const rec = { compiled: out.compiled, tries: out.tries, error: out.error, question: out.question, tier };
+      if (out.compiled) {
+        const run = await runApp(out.r); rec.runs = run.ok; rec.runError = run.ok ? '' : run.error; rec.size = out.r.sizes.total;
+        if (run.ok) addPair(a, out.se, 'experiment B');
+      }
+      store.b[a] = rec; save(); renderB();
+    }
+    $('bStatus').textContent = 'Experiment B finished.';
+  } catch (e) { $('bStatus').textContent = e.message === 'stopped' ? 'Stopped. Results so far are saved.' : e?.code === 'not_granted' ? 'Permission to ask Claude was not given.' : 'Stopped: ' + (e.message || e); }
+  finally { $('bRun').disabled = false; $('bStop').disabled = true; }
+});
+$('bStop').addEventListener('click', () => { stopB = true; });
+
+// ---------- training set ----------
+function addPair(everyday, structured, source) { if (store.pairs.some(p => p.everyday.toLowerCase() === everyday.toLowerCase() && p.structured === structured)) return; store.pairs.push({ everyday, structured, source }); save(); renderPairs(); }
+function renderPairs() { $('dCount').textContent = store.pairs.length.toLocaleString(); $('dPairs').textContent = store.pairs.length ? store.pairs.slice(-40).map(p => JSON.stringify({ everyday: p.everyday, source: p.source })).join('\n') + (store.pairs.length > 40 ? `\n… and ${store.pairs.length - 40} more (copy to see all)` : '') : 'None yet.'; }
+$('dRun').addEventListener('click', async () => {
+  if (!sample) return; $('dRun').disabled = true; const per = +$('dPer').value;
+  try {
+    for (const [i, [name, prog]] of Object.entries(DEMOS).entries()) {
+      try { compileSE3(prog); } catch (e) { continue; }
+      $('dStatus').textContent = `App ${i + 1}/${Object.keys(DEMOS).length}: ${name}…`;
+      const text = await ask([{ role: 'user', content: `Here is a small app, written in a strict language called Structured English:\n\n${prog}\n\nWrite ${per} different requests that ordinary people might type to ask for an app like this. Make them varied: some short, some chatty, some vague, a few with small typos, British English. Each must still describe this same app. Reply with one request per line, each inside <r></r>.` }], 'default', $('dStatus'));
+      for (const m of text.matchAll(/<r>([\s\S]*?)<\/r>/g)) addPair(m[1].trim(), prog, 'demo: ' + name);
+    }
+    $('dStatus').textContent = 'Done. Every pair above uses a program that compiles.';
+  } catch (e) { $('dStatus').textContent = 'Stopped: ' + (e.message || e); }
+  finally { $('dRun').disabled = false; }
+});
+$('dCopy').addEventListener('click', async () => { const txt = store.pairs.map(p => JSON.stringify(p)).join('\n'); try { await navigator.clipboard.writeText(txt); $('dStatus').textContent = `Copied ${store.pairs.length} pairs.`; } catch (e) { $('dPairs').textContent = txt; $('dStatus').textContent = 'Copy blocked here; all pairs are shown below to select.'; } });
+$('dClear').addEventListener('click', () => { store.pairs = []; save(); renderPairs(); });
+$('copyAll').addEventListener('click', async () => { try { await navigator.clipboard.writeText(JSON.stringify(store, null, 2)); $('copyAll').textContent = 'Copied'; setTimeout(() => $('copyAll').textContent = 'Copy all results as JSON', 1500); } catch (e) { $('copyAll').textContent = 'Copy blocked'; } });
+$('clearAll').addEventListener('click', () => { store = { a: {}, b: {}, pairs: [] }; save(); renderA(); renderB(); renderPairs(); });
+window.labTest = { inLab, wrapBody, compileSE3, LAB_TASKS };
+renderA(); renderB(); renderPairs();
+}
+</script></body></html>

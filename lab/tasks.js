@@ -1,0 +1,58 @@
+// Experiment A tasks: plain-English number jobs, each with a reference answer used ONLY to grade (never shown to the AI).
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+const isPrime = n => { if (n < 2) return 0; for (let i = 2; i * i <= n; i++) if (n % i === 0) return 0; return 1; };
+const LAB_TASKS = [
+  { id: 'add3', spec: 'Add three numbers together.', params: ['a', 'b', 'c'], ref: (a, b, c) => a + b + c, inputs: [[1, 2, 3], [10, -4, 7], [0, 0, 0], [100, 200, 300]] },
+  { id: 'max3', spec: 'Return the largest of three numbers.', params: ['a', 'b', 'c'], ref: Math.max, inputs: [[1, 2, 3], [9, -4, 7], [-5, -2, -9], [4, 4, 1]] },
+  { id: 'absdiff', spec: 'How far apart are two numbers? Return the distance between them, never negative.', params: ['a', 'b'], ref: (a, b) => Math.abs(a - b), inputs: [[3, 9], [9, 3], [-4, 6], [5, 5]] },
+  { id: 'clamp', spec: 'Keep x between low and high: if x is below low return low, if above high return high, otherwise x.', params: ['x', 'low', 'high'], ref: (x, l, h) => Math.min(h, Math.max(l, x)), inputs: [[5, 1, 10], [-3, 0, 9], [50, 0, 9], [0, 0, 0]] },
+  { id: 'sign', spec: 'Return -1 if the number is negative, 0 if it is zero, and 1 if it is positive.', params: ['n'], ref: n => Math.sign(n), inputs: [[-7], [0], [12], [-1]] },
+  { id: 'leap', spec: 'Return 1 if the year is a leap year, otherwise 0.', params: ['year'], ref: y => +((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0), inputs: [[2024], [1900], [2000], [2023], [2100]] },
+  { id: 'factorial', spec: 'Return n factorial (n! = 1 × 2 × … × n, and 0! = 1).', params: ['n'], ref: n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }, inputs: [[0], [1], [5], [10], [12]] },
+  { id: 'fib', spec: 'Return the nth Fibonacci number, where fib(0) = 0 and fib(1) = 1.', params: ['n'], ref: n => { let a = 0, b = 1; for (let i = 0; i < n; i++) [a, b] = [b, a + b]; return a; }, inputs: [[0], [1], [2], [10], [30]] },
+  { id: 'gcd', spec: 'Return the greatest common divisor of two positive whole numbers.', params: ['a', 'b'], ref: (a, b) => { while (b) [a, b] = [b, a % b]; return a; }, inputs: [[12, 18], [17, 5], [100, 25], [48, 180]] },
+  { id: 'lcm', spec: 'Return the smallest number that both a and b divide into exactly (lowest common multiple).', params: ['a', 'b'], ref: (a, b) => { let x = a, y = b; while (y) [x, y] = [y, x % y]; return a / x * b; }, inputs: [[4, 6], [3, 5], [12, 18], [7, 7]] },
+  { id: 'power', spec: 'Return a raised to the power b (b is 0 or more).', params: ['a', 'b'], ref: (a, b) => a ** b, inputs: [[2, 10], [3, 0], [5, 3], [-2, 3]] },
+  { id: 'digitsum', spec: 'Add up the digits of a positive number (e.g. 1234 → 10).', params: ['n'], ref: n => [...String(n)].reduce((s, d) => s + +d, 0), inputs: [[1234], [0], [9], [99999]] },
+  { id: 'digits', spec: 'How many digits does a positive number have? (0 has 1 digit.)', params: ['n'], ref: n => String(n).length, inputs: [[0], [7], [10], [123456]] },
+  { id: 'reverse', spec: 'Reverse the digits of a positive number (e.g. 1234 → 4321, 120 → 21).', params: ['n'], ref: n => +[...String(n)].reverse().join(''), inputs: [[1234], [120], [7], [90001]] },
+  { id: 'palindrome', spec: 'Return 1 if a positive number reads the same backwards (like 12321), otherwise 0.', params: ['n'], ref: n => +(String(n) === [...String(n)].reverse().join('')), inputs: [[12321], [1234], [7], [1001], [10]] },
+  { id: 'prime', spec: 'Return 1 if n is a prime number, otherwise 0.', params: ['n'], ref: isPrime, inputs: [[0], [1], [2], [21], [97], [7919]] },
+  { id: 'nthprime', spec: 'Return the nth prime number, counting from 1 (the 1st prime is 2, the 5th is 11).', params: ['n'], ref: n => { let c = 0, k = 1; while (c < n) { k++; if (isPrime(k)) c++; } return k; }, inputs: [[1], [5], [10], [100]] },
+  { id: 'divisors', spec: 'Count how many whole numbers divide n exactly (n is positive; 12 has 6).', params: ['n'], ref: n => range(1, n).filter(d => n % d === 0).length, inputs: [[1], [12], [13], [100]] },
+  { id: 'perfect', spec: 'Return 1 if n is a perfect number (equal to the sum of its divisors smaller than itself, like 28), otherwise 0.', params: ['n'], ref: n => +(n > 1 && range(1, n - 1).filter(d => n % d === 0).reduce((s, d) => s + d, 0) === n), inputs: [[6], [28], [12], [496], [1]] },
+  { id: 'collatz', spec: 'Count the steps to reach 1 by repeating: if even, halve it; if odd, times 3 plus 1. (1 takes 0 steps.)', params: ['n'], ref: n => { let s = 0; while (n !== 1) { n = n % 2 ? 3 * n + 1 : n / 2; s++; } return s; }, inputs: [[1], [6], [7], [27]] },
+  { id: 'isqrt', spec: 'Return the whole-number square root of n, rounded down (e.g. 17 → 4).', params: ['n'], ref: n => Math.floor(Math.sqrt(n)), inputs: [[0], [1], [17], [100], [99999]] },
+  { id: 'popcount', spec: 'How many 1s are there when n is written in binary?', params: ['n'], ref: n => [...(n >>> 0).toString(2)].filter(b => b === '1').length, inputs: [[0], [7], [255], [1024]] },
+  { id: 'sumsquares', spec: 'Return 1² + 2² + … + n².', params: ['n'], ref: n => range(1, n).reduce((s, k) => s + k * k, 0), inputs: [[0], [1], [3], [10]] },
+  { id: 'digitalroot', spec: 'Keep adding the digits of n until only one digit is left (e.g. 9875 → 29 → 11 → 2).', params: ['n'], ref: n => { while (n > 9) n = [...String(n)].reduce((s, d) => s + +d, 0); return n; }, inputs: [[9875], [0], [5], [99999]] },
+  { id: 'daysinmonth', spec: 'How many days are in this month? Month is 1–12; the year matters for February.', params: ['month', 'year'], ref: (m, y) => new Date(y, m, 0).getDate(), inputs: [[1, 2023], [2, 2023], [2, 2024], [4, 2023], [2, 1900]] },
+  { id: 'triangle', spec: 'Given three side lengths, return 0 if they cannot make a triangle, 1 if all sides are equal, 2 if exactly two are equal, 3 if all are different.', params: ['a', 'b', 'c'], ref: (a, b, c) => (a + b <= c || a + c <= b || b + c <= a) ? 0 : (a === b && b === c) ? 1 : (a === b || b === c || a === c) ? 2 : 3, inputs: [[3, 3, 3], [3, 4, 5], [5, 5, 8], [1, 2, 10]] },
+  { id: 'ctof', spec: 'Convert Celsius to Fahrenheit, rounding down to a whole number (C × 9 ÷ 5 + 32).', params: ['c'], ref: c => Math.floor(c * 9 / 5) + 32, inputs: [[0], [100], [37], [-40]] },
+  { id: 'evensum', spec: 'Add up all the even numbers from 1 to n.', params: ['n'], ref: n => range(1, n).filter(k => k % 2 === 0).reduce((s, k) => s + k, 0), inputs: [[0], [1], [10], [101]] },
+  { id: 'change', spec: 'What is the fewest coins (50, 20, 10, 5, 2 and 1) needed to make this amount?', params: ['pence'], ref: p => { let c = 0; for (const k of [50, 20, 10, 5, 2, 1]) { c += Math.floor(p / k); p %= k; } return c; }, inputs: [[0], [3], [88], [199]] },
+  { id: 'secondsclock', spec: 'Turn a number of seconds into a clock number HHMM (hours and minutes, ignoring leftover seconds), e.g. 3725 seconds → 102 (1 hour 2 minutes).', params: ['s'], ref: s => Math.floor(s / 3600) * 100 + Math.floor(s % 3600 / 60), inputs: [[0], [3725], [59], [86399]] }
+].map(t => ({ ...t, tests: t.inputs.map(a => [a, t.ref(...a) | 0]) }));
+const LAB_APPS = [
+  'A calculator for adding up a shopping bill',
+  'A counter for how many glasses of water I drank today',
+  'A 25 minute study timer with start and pause',
+  'Roll two dice and show both',
+  'A tip calculator where I can pick 10, 12.5 or 15 percent',
+  'Convert miles to kilometres',
+  'A to-do list for my weekend',
+  'A score keeper for a football match between two teams',
+  'Split the rent between flatmates',
+  'A coin flip that counts heads and tails',
+  'A countdown from 60 seconds that stops at zero',
+  'Work out my BMI from height and weight',
+  'A quiz on adding numbers with a results screen',
+  'A game where I move a paddle to catch a falling ball',
+  'A savings tracker: how much I have saved towards a goal of 500 pounds',
+  'A pocket money calculator: weekly amount times number of weeks',
+  'Count down the days left in a 30 day challenge',
+  'A shopping list that remembers my items',
+  'Hours and minutes to minutes converter',
+  'A reaction game: press the button as soon as the light turns green'
+];
+if (typeof module !== 'undefined') module.exports = { LAB_TASKS, LAB_APPS };

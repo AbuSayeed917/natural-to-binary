@@ -21,6 +21,7 @@ Live demos (GitHub Pages, in the [`docs/`](docs) folder):
 | [Structured English v0.1](docs/structured-english-v1.html) | The first version: one whole-number calculator | nothing |
 | [Tiny Machine](docs/tiny-machine.html) | Each word becomes its own binary piece; pieces combine into a clickable program | nothing |
 | [English to Binary](docs/english-to-binary.html) | Strict English maths → WebAssembly, shown sentence by sentence | nothing |
+| [AI Accuracy Lab](docs/lab.html) | Measures how accurately Claude turns English into working binary, two ways, with every result run in a sealed, time- and memory-limited chamber | open on claude.ai |
 | [Say It, Compile It](docs/say-it-compile-it.html) | Everyday English → Claude rewrites it into Structured English → compiler → binary | open on claude.ai |
 | [Just Say It](docs/just-say-it.html) | Any request; number questions come back as raw bytes, tested and auto-repaired | open on claude.ai |
 
@@ -53,6 +54,8 @@ compilers/
   structured-english/   v0.1: strict English → 128×128 machine binary (calculator milestone)
   tiny-machine/         ~50-word vocabulary → 32×32 clickable programs
   english-to-binary/    English-looking maths language → WebAssembly
+lab/                    the AI Accuracy Lab: sealed test chamber, 30 graded number tasks, 20 app requests
+kit/                    compile-checker and Colab notebook for training a small model
 experiments/
   01-direct-wasm-benchmark/       can a model write raw WebAssembly bytes directly?
   02-hand-written-native-binary/  a 178-byte Linux program written byte by byte
@@ -119,7 +122,8 @@ npm test
 - [x] Everyday English → Structured English using Claude, with automatic repair
 - [x] v0.2: letters, decimals and money, several displays, round buttons, a text box with keyboard typing, lists
 - [x] v0.3: timers, saving between visits, random numbers, several screens, moving shapes, arrow keys, a clearer 5×7 font
-- [ ] Safe lab + accuracy scorecard: everyday English → bytes, measured two ways
+- [x] Safe lab + accuracy scorecard: everyday English → bytes, measured two ways (results to come)
+- [x] Training kit: compile-checker + Colab notebook for a small open model
 - [ ] Build a dataset of everyday English → Structured English pairs
 - [ ] Fine-tune a small open model for that rewriting step, and measure it against the 5% baseline
 - [ ] Output native machine code directly (e.g. a Raspberry Pi calculator)

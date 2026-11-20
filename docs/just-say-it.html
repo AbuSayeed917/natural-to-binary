@@ -130,7 +130,7 @@ let sample = null, busy = false, current = null, convo = [];
 const history = [];
 const setStatus = (m, bad) => { $('status').textContent = m; $('status').className = 'status' + (bad ? ' bad' : ''); };
 
-claude.use('sample').then(s => { sample = s; if (!s) { $('off').hidden = false; $('make').disabled = true; } }).catch(() => { $('off').hidden = false; });
+(typeof claude !== 'undefined' && claude.use ? claude.use('sample') : Promise.resolve(null)).then(s => { sample = s; if (!s) { $('off').hidden = false; $('make').disabled = true; } }).catch(() => { $('off').hidden = false; });
 
 async function ask(messages, label) {
   let chars = 0;

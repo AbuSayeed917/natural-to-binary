@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Accuracy Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a careful lab notebook: measured, honest, numbers first.
+   IDEA: a test bench with a sealed chamber: requests go in, AI-written bytes run behind glass, scores come out.
+   PICTURE: the scoreboard bars for each method, filling as runs finish, above the per-task log.
+   COLOUR and TYPE: white, ink, carmine for English, prussian for bytes, green pass / red fail; Literata + JetBrains Mono.
+   LAYOUT: title + the three safety walls, then Experiment A (direct bytes), Experiment B (apps via Structured English), then the training-set builder. */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f1217);--ink:light-dark(#10131a,#e8eaf0);--mute:light-dark(#5b6170,#9aa1b2);--line:light-dark(#e3e5ea,#252a35);--car:light-dark(#c1121f,#ff5a63);--pru:light-dark(#0b4f8a,#6fb3ff);--panel:light-dark(#f6f7f9,#151922);--ok:light-dark(#1f7a3f,#5fd38a);--bad:light-dark(#c1121f,#ff5a63)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Literata,Georgia,serif;overflow-x:clip}
+.band{padding:clamp(22px,3.5vw,44px) max(4vw,16px)}.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 8px;font-weight:600;text-wrap:balance}
+h2{font-size:24px;margin:0 0 6px;font-weight:600}h3{font-size:17px;margin:0 0 6px;font-weight:600}
+.lede{color:var(--mute);max-width:72ch;margin:0}
+.walls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+.walls div{border-top:2px solid var(--pru);padding-top:10px;font-size:15px;color:var(--mute)}.walls b{color:var(--ink);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;margin:16px 0}
+label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mute)}
+label.ck{flex-direction:row;align-items:center;gap:8px;min-height:44px;color:var(--ink);font-size:15px}
+select,button{font:inherit;font-size:15px;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--pru)}
+button{cursor:pointer}button.go{background:var(--pru);border-color:var(--pru);color:#fff;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--car);outline-offset:2px}
+.status{font:14px/1.5 'JetBrains Mono',monospace;color:var(--mute);min-height:21px;margin-bottom:10px}
+.board{display:grid;gap:10px;margin:14px 0 18px}
+.bar{display:grid;grid-template-columns:minmax(0,15em) minmax(0,1fr) 6.5em;gap:12px;align-items:center;font-size:15px}
+.bar .track{height:18px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar .fill{height:100%;background:var(--pru);transition:width .4s}
+.bar .fill.first{background:var(--car)}
+.bar .n{font:600 14px 'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+@media(max-width:600px){.bar{grid-template-columns:minmax(0,1fr) 6em}.bar .track{grid-column:1/-1;order:3}}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{text-align:left;font-weight:600;color:var(--mute);font-size:13.5px;padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.r{font:13.5px 'JetBrains Mono',monospace;white-space:nowrap}
+.p{color:var(--ok)}.f{color:var(--bad)}.w{color:var(--mute)}
+.scroll{overflow-x:auto}
+details{margin-top:10px}summary{cursor:pointer;min-height:44px;color:var(--mute)}
+pre{white-space:pre-wrap;font:12.5px/1.5 'JetBrains Mono',monospace;color:var(--mute);background:var(--panel);padding:12px;border-radius:8px;max-height:340px;overflow:auto}
+.off{padding:14px 16px;border-radius:10px;background:var(--panel);color:var(--mute);margin-top:14px}
+.note{font-size:14px;color:var(--mute);margin-top:12px;max-width:80ch}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px}.stack td{display:flow-root;border:0;padding:2px 0;padding-inline-start:7.5em}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mute)}}
+</style></head><body>
+<div class="band"><div class="wrap">
+<h1>How accurately can AI write binary?</h1>
+<p class="lede">This lab measures it instead of guessing. Claude gets plain-English requests and writes WebAssembly. Every result runs in a sealed test chamber and is graded automatically against answers it never sees.</p>
+<div class="walls">
+ <div><b>Sealed box.</b> WebAssembly can only touch its own memory: no files, no internet, nothing on your computer. The lab gives it no outside access at all.</div>
+ <div><b>Separate room.</b> Each binary runs in its own background worker, away from this page.</div>
+ <div><b>Time limit.</b> A binary stuck in an endless loop is shut down after 1 second and marked as failed.</div>
+ <div><b>Memory limit.</b> Binaries asking for more than 1 MB of memory are refused before they start.</div>
+</div>
+<div class="off" id="off" hidden>This lab needs permission to ask Claude, and can't here. Open it on claude.ai while signed in.</div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Experiment A: plain English → raw bytes</h2>
+<p class="lede">30 number jobs, from “add three numbers” to “fewest coins to make an amount”. Two methods: Claude writes the <b>whole binary</b>, or only the <b>function body</b> while rules write the packaging. Failures are sent back for repair.</p>
+<div class="controls">
+ <label>Tasks<select id="aCount"><option value="10">first 10</option><option value="20">first 20</option><option value="30" selected>all 30</option></select></label>
+ <label class="ck"><input type="checkbox" id="mWhole" checked> Whole binary</label>
+ <label class="ck"><input type="checkbox" id="mBody" checked> Body only</label>
+ <label>Tries per task<select id="aTries"><option value="1">1 (no repair)</option><option value="3" selected>3 (with repair)</option></select></label>
+ <label>Model<select id="aTier"><option value="quick">quick</option><option value="default" selected>default</option><option value="complex">complex</option></select></label>
+ <button class="go" id="aRun">Run experiment A</button><button id="aStop" disabled>Stop</button>
+</div>
+<div class="status" id="aStatus" aria-live="polite"></div>
+<div class="board" id="aBoard"></div>
+<div class="scroll"><table class="stack"><thead><tr><th>Task</th><th>Whole binary</th><th>Body only</th></tr></thead><tbody id="aRows"></tbody></table></div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Experiment B: everyday requests → apps</h2>
+<p class="lede">20 everyday app requests. Claude rewrites each into Structured English, our compiler makes the binary, then the lab presses every button, sends keys and runs the timer for 3 seconds, to check it works without crashing.</p>
+<div class="controls">
+ <label>Requests<select id="bCount"><option value="5">first 5</option><option value="10">first 10</option><option value="20" selected>all 20</option></select></label>
+ <label>Model<select id="bTier"><option value="quick">quick</option><option value="default" selected>default</option><option value="complex">complex</option></select></label>
+ <button class="go" id="bRun">Run experiment B</button><button id="bStop" disabled>Stop</button>
+</div>
+<div class="status" id="bStatus" aria-live="polite"></div>
+<div class="board" id="bBoard"></div>
+<div class="scroll"><table class="stack"><thead><tr><th>Request</th><th>Compiled</th><th>Runs safely</th><th>Size</th></tr></thead><tbody id="bRows"></tbody></table></div>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Training set builder</h2>
+<p class="lede">The examples a small model would learn from: everyday request → Structured English that compiles. Pairs come from Experiment B, and from Claude writing varied requests for each of the 10 demo apps. Every pair is checked by the compiler before it's kept.</p>
+<div class="controls">
+ <label>Requests per app<select id="dPer"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select></label>
+ <button class="go" id="dRun">Make examples from the demo apps</button>
+ <button id="dCopy">Copy as JSONL</button><button id="dClear">Clear</button>
+</div>
+<div class="status" id="dStatus" aria-live="polite"></div>
+<p style="font-size:20px;margin:6px 0"><b id="dCount">0</b> checked training pairs</p>
+<details><summary>See the pairs</summary><pre id="dPairs"></pre></details>
+</div></div>
+
+<div class="band" style="border-top:1px solid var(--line)"><div class="wrap">
+<h2>Full results</h2>
+<div class="controls"><button id="copyAll">Copy all results as JSON</button><button id="clearAll">Clear saved results</button></div>
+<p class="note">Results are saved in this browser, so you can close the page and come back. Each run makes many requests to Claude, so the full set can take several minutes. If Claude is busy, the lab waits and retries.</p>
+</div></div>
+
+<script>
+{
+__FONT__
+__COMPILER__
+__TASKS__
+const SPEC = __SPEC__;
+const DEMOS = __DEMOS__;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let sample = null;
+(typeof claude !== 'undefined' && claude.use ? claude.use('sample') : Promise.resolve(null)).then(s => { sample = s; if (!s) { $('off').hidden = false; ['aRun','bRun','dRun'].forEach(id => $(id).disabled = true); } }).catch(() => { $('off').hidden = false; });
+
+// ---------- saved state ----------
+let store = { a: {}, b: {}, pairs: [] };
+try { store = Object.assign(store, JSON.parse(localStorage.getItem('lab-results') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('lab-results', JSON.stringify(store)); } catch (e) {} };
+
+// ---------- the sealed test chamber ----------
+const WORKER = `
+const uleb = (b, i) => { let r = 0, s = 0, x; do { x = b[i++]; r |= (x & 0x7f) << s; s += 7; } while (x & 0x80); return [r >>> 0, i]; };
+function memPages(b) {
+  if (b.length < 8 || b[0] !== 0 || b[1] !== 0x61 || b[2] !== 0x73 || b[3] !== 0x6d) throw new Error('not a WebAssembly binary (it must start 00 61 73 6d)');
+  let i = 8;
+  while (i < b.length) { const id = b[i++]; let size; [size, i] = uleb(b, i); const end = i + size;
+    if (id === 5) { let n; [n, i] = uleb(b, i); for (let k = 0; k < n; k++) { const flags = b[i++]; let init; [init, i] = uleb(b, i); if (init > 16) return init; if (flags & 1) { [, i] = uleb(b, i); } } }
+    i = end; }
+  return 0;
+}
+onmessage = e => {
+  const job = e.data;
+  try {
+    const pages = memPages(job.bytes); if (pages > 16) throw new Error('asked for ' + pages * 64 + ' KB of memory (limit is 1 MB)');
+    const mod = new WebAssembly.Module(job.bytes);
+    if (WebAssembly.Module.imports(mod).length) throw new Error('it asked for outside access, which the lab never gives');
+    const inst = new WebAssembly.Instance(mod, {}); const x = inst.exports;
+    if (job.kind === 'fn') {
+      if (typeof x.run !== 'function') throw new Error('there is no function exported as "run"');
+      const results = job.tests.map(([a, w]) => { let g; try { g = x.run(...a); } catch (err) { g = 'crash (' + err.message + ')'; } return { a, w, g, pass: g === w }; });
+      postMessage({ ok: true, results });
+    } else {
+      new DataView(x.memory.buffer).setUint32(job.seedAt, 99991, true);
+      x.start(); x.draw();
+      for (const [cx, cy] of job.clicks) { x.click(cx, cy); x.draw(); }
+      for (const k of [13, 32, 17, 19, 65, 8]) { x.key(k); x.draw(); }
+      for (let t = 0; t < 30; t++) { x.tick(); if (t % 10 === 9) x.draw(); }
+      for (const [cx, cy] of job.clicks) { x.click(cx, cy); x.draw(); }
+      postMessage({ ok: true });
+    }
+  } catch (err) { postMessage({ ok: false, error: String(err.message || err) }); }
+};`;
+const workerURL = URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' }));
+function inLab(job, ms = 1000) {
+  return new Promise(resolve => {
+    const w = new Worker(workerURL); let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; w.terminate(); resolve({ ok: false, error: 'ran longer than ' + ms / 1000 + ' s (endless loop?) and was shut down' }); } }, ms);
+    w.onmessage = e => { if (done) return; done = true; clearTimeout(t); w.terminate(); resolve(e.data); };
+    w.onerror = e => { if (done) return; done = true; clearTimeout(t); w.terminate(); resolve({ ok: false, error: e.message || 'the worker failed' }); };
+    w.postMessage(job);
+  });
+}
+
+// ---------- talking to Claude ----------
+async function ask(messages, tier, statusEl) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { const r = await sample(messages, { modelTier: tier, cache: false }); return r.text; }
+    catch (e) {
+      if (e?.code === 'rate_limited' && attempt < 3) { for (let s = 30; s > 0; s--) { statusEl.textContent = `Claude is busy. Waiting ${s} s, then trying again…`; await sleep(1000); } continue; }
+      throw e;
+    }
+  }
+}
+const hexOf = t => { const m = t.match(/<hex>([\s\S]*?)<\/hex>/); const h = (m ? m[1] : t).replace(/0x/gi, '').replace(/[^0-9a-f]/gi, ''); return new Uint8Array((h.match(/../g) || []).map(x => parseInt(x, 16))); };
+const ulebW = n => { const o = []; do { let b = n & 0x7f; n >>>= 7; if (n) b |= 0x80; o.push(b); } while (n); return o; };
+function wrapBody(body, nParams) {
+  const sec = (id, b) => [id, ...ulebW(b.length), ...b];
+  const type = [1, 0x60, nParams, ...Array(nParams).fill(0x7f), 1, 0x7f];
+  return new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, ...sec(1, type), ...sec(3, [1, 0]), ...sec(7, [1, 3, 0x72, 0x75, 0x6e, 0, 0]), ...sec(10, [1, ...ulebW(body.length), ...body])]);
+}
+const PROMPT = {
+  whole: t => `Write a complete WebAssembly binary module, as hex bytes. Do NOT write WAT, assembly or any source code first: output the bytes directly.
+Requirements: the 8-byte header (magic + version 1); one function type with ${t.params.length} i32 parameter${t.params.length > 1 ? 's' : ''} and one i32 result; one function; export it with the name "run" (export kind 0 = function, index 0); a code section with correct LEB128 sizes. Use only i32 instructions. No imports, no memory.
+The inputs, in order: ${t.params.join(', ')} (local ${t.params.map((p, i) => i + ' = ' + p).join(', ')}).
+What it must do: ${t.spec}
+Reply with ONLY the bytes inside <hex></hex>.`,
+  body: t => `Write only the BODY of a WebAssembly function, as hex bytes. Do NOT write WAT or any source code: output the bytes directly.
+The function has ${t.params.length} i32 parameter${t.params.length > 1 ? 's' : ''} (local ${t.params.map((p, i) => i + ' = ' + p).join(', ')}) and returns one i32.
+Start with the local-declarations vector (00 for no extra locals; 01 03 7f declares three extra i32 locals, numbered after the parameters), then the instructions, and end with 0b. Do NOT include the body size or any section headers; those are added for you. Use only i32 instructions.
+What it must do: ${t.spec}
+Reply with ONLY the bytes inside <hex></hex>.`
+};
+const failText = r => r.ok ? r.results.filter(x => !x.pass).slice(0, 3).map(x => `run(${x.a.join(', ')}) gave ${x.g}, but the right answer is ${x.w}`).join('; ') : r.error;
+
+// ---------- Experiment A ----------
+const METHODS = { whole: 'Whole binary', body: 'Body only' };
+let stopA = false;
+function renderA() {
+  const ids = Object.keys(store.a); const rows = LAB_TASKS.filter(t => store.a[t.id]);
+  $('aRows').innerHTML = rows.map(t => { const r = store.a[t.id]; const cell = m => { const x = r[m]; if (!x) return '<td class="r w">–</td>'; return `<td class="r ${x.pass ? 'p' : 'f'}" data-l="${METHODS[m]}" title="${esc(x.last || '')}">${x.pass ? '✓' : '✗'} ${x.pass ? (x.tries === 1 ? 'first try' : 'after ' + x.tries + ' tries') : 'failed (' + x.tries + ' tries)'} · ${x.bytes} B</td>`; };
+    return `<tr><td data-l="Task">${esc(t.spec)}</td>${cell('whole')}${cell('body')}</tr>`; }).join('');
+  const bars = [];
+  for (const m of ['whole', 'body']) {
+    const done = rows.filter(t => store.a[t.id][m]); if (!done.length) continue;
+    const first = done.filter(t => store.a[t.id][m].pass && store.a[t.id][m].tries === 1).length, fin = done.filter(t => store.a[t.id][m].pass).length;
+    bars.push([`${METHODS[m]}: first try`, first, done.length, 'first'], [`${METHODS[m]}: with repair`, fin, done.length, '']);
+  }
+  $('aBoard').innerHTML = bars.map(([l, n, d, cls]) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill ${cls}" style="width:${d ? n / d * 100 : 0}%"></div></div><span class="n">${n}/${d} · ${d ? Math.round(n / d * 100) : 0}%</span></div>`).join('');
+}
+$('aRun').addEventListener('click', async () => {
+  if (!sample) return;
+  const methods = ['whole', 'body'].filter(m => $(m === 'whole' ? 'mWhole' : 'mBody').checked); if (!methods.length) { $('aStatus').textContent = 'Tick at least one method.'; return; }
+  const tasks = LAB_TASKS.slice(0, +$('aCount').value), tries = +$('aTries').value, tier = $('aTier').value;
+  stopA = false; $('aRun').disabled = true; $('aStop').disabled = false;
+  try {
+    for (const [ti, t] of tasks.entries()) for (const m of methods) {
+      if (stopA) throw new Error('stopped');
+      $('aStatus').textContent = `Task ${ti + 1}/${tasks.length}: ${t.id} · ${METHODS[m]}…`;
+      const convo = [{ role: 'user', content: PROMPT[m](t) }]; let res = null, k = 0, size = 0;
+      for (k = 1; k <= tries; k++) {
+        const text = await ask(convo, tier, $('aStatus')); convo.push({ role: 'assistant', content: text });
+        const raw = hexOf(text); const bytes = m === 'body' ? wrapBody([...raw], t.params.length) : raw; size = bytes.length;
+        res = await inLab({ kind: 'fn', bytes, tests: t.tests });
+        if (res.ok && res.results.every(x => x.pass)) break;
+        if (k < tries) convo.push({ role: 'user', content: `That failed in testing: ${failText(res)}. Fix it and reply with the complete corrected bytes in the same <hex></hex> format.` });
+      }
+      const pass = !!(res && res.ok && res.results.every(x => x.pass));
+      store.a[t.id] = store.a[t.id] || {}; store.a[t.id][m] = { pass, tries: Math.min(k, tries), bytes: size, last: pass ? '' : failText(res), tier };
+      save(); renderA();
+    }
+    $('aStatus').textContent = 'Experiment A finished.';
+  } catch (e) { $('aStatus').textContent = e.message === 'stopped' ? 'Stopped. Results so far are saved.' : e?.code === 'not_granted' ? 'Permission to ask Claude was not given.' : 'Stopped: ' + (e.message || e); }
+  finally { $('aRun').disabled = false; $('aStop').disabled = true; }
+});
+$('aStop').addEventListener('click', () => { stopA = true; });
+
+// ---------- Experiment B ----------
+let stopB = false;
+const tag = (s, n) => { const m = s.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`)); return m ? m[1].trim() : null; };
+function renderB() {
+  const rows = LAB_APPS.filter(a => store.b[a]);
+  $('bRows').innerHTML = rows.map(a => { const r = store.b[a];
+    return `<tr><td data-l="Request">${esc(a)}</td><td class="r ${r.compiled ? 'p' : 'f'}" data-l="Compiled" title="${esc(r.error || '')}">${r.compiled ? '✓ ' + (r.tries === 1 ? 'first try' : 'after ' + r.tries + ' tries') : r.question ? '? asked a question' : '✗ failed'}</td><td class="r ${r.runs ? 'p' : r.compiled ? 'f' : 'w'}" data-l="Runs safely" title="${esc(r.runError || '')}">${r.compiled ? (r.runs ? '✓ no crash' : '✗ ' + esc(r.runError || 'crashed')) : '–'}</td><td class="r" data-l="Size">${r.size ? r.size.toLocaleString() + ' B' : '–'}</td></tr>`; }).join('');
+  if (!rows.length) { $('bBoard').innerHTML = ''; return; }
+  const first = rows.filter(a => store.b[a].compiled && store.b[a].tries === 1).length, comp = rows.filter(a => store.b[a].compiled).length, runs = rows.filter(a => store.b[a].runs).length;
+  $('bBoard').innerHTML = [['Compiled first try', first, 'first'], ['Compiled with repair', comp, ''], ['Compiled and runs safely', runs, '']].map(([l, n, cls]) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill ${cls}" style="width:${n / rows.length * 100}%"></div></div><span class="n">${n}/${rows.length} · ${Math.round(n / rows.length * 100)}%</span></div>`).join('');
+}
+async function makeApp(request, tier, statusEl) {
+  const convo = [{ role: 'user', content: SPEC + '\n\nREQUEST: ' + request }];
+  for (let k = 1; k <= 3; k++) {
+    const text = await ask(convo, tier, statusEl); convo.push({ role: 'assistant', content: text });
+    const q = tag(text, 'question'); if (q) return { compiled: false, question: q, tries: k };
+    const se = tag(text, 'se'); if (!se) { convo.push({ role: 'user', content: 'Reply using exactly the <se> and <note> format.' }); continue; }
+    try { const r = compileSE3(se); return { compiled: true, tries: k, se, r }; }
+    catch (err) { if (k < 3) convo.push({ role: 'user', content: `The compiler rejected it with this error: ${err.message}\nFix it. Use only the allowed patterns. Same reply format.` }); else return { compiled: false, tries: k, error: err.message, se }; }
+  }
+  return { compiled: false, tries: 3, error: 'no usable reply' };
+}
+async function runApp(r) {
+  const clicks = r.screens.flatMap(s => s.buttons.map(b => [b.x + (b.w >> 1), b.y + (b.h >> 1)]));
+  if (r.list) clicks.push([60, r.list.y + 6]);
+  return inLab({ kind: 'app', bytes: r.bytes, clicks, seedAt: r.memory.SEED_AT }, 3000);
+}
+$('bRun').addEventListener('click', async () => {
+  if (!sample) return;
+  const apps = LAB_APPS.slice(0, +$('bCount').value), tier = $('bTier').value;
+  stopB = false; $('bRun').disabled = true; $('bStop').disabled = false;
+  try {
+    for (const [i, a] of apps.entries()) {
+      if (stopB) throw new Error('stopped');
+      $('bStatus').textContent = `Request ${i + 1}/${apps.length}: “${a}”…`;
+      const out = await makeApp(a, tier, $('bStatus'));
+      const rec = { compiled: out.compiled, tries: out.tries, error: out.error, question: out.question, tier };
+      if (out.compiled) {
+        const run = await runApp(out.r); rec.runs = run.ok; rec.runError = run.ok ? '' : run.error; rec.size = out.r.sizes.total;
+        if (run.ok) addPair(a, out.se, 'experiment B');
+      }
+      store.b[a] = rec; save(); renderB();
+    }
+    $('bStatus').textContent = 'Experiment B finished.';
+  } catch (e) { $('bStatus').textContent = e.message === 'stopped' ? 'Stopped. Results so far are saved.' : e?.code === 'not_granted' ? 'Permission to ask Claude was not given.' : 'Stopped: ' + (e.message || e); }
+  finally { $('bRun').disabled = false; $('bStop').disabled = true; }
+});
+$('bStop').addEventListener('click', () => { stopB = true; });
+
+// ---------- training set ----------
+function addPair(everyday, structured, source) { if (store.pairs.some(p => p.everyday.toLowerCase() === everyday.toLowerCase() && p.structured === structured)) return; store.pairs.push({ everyday, structured, source }); save(); renderPairs(); }
+function renderPairs() { $('dCount').textContent = store.pairs.length.toLocaleString(); $('dPairs').textContent = store.pairs.length ? store.pairs.slice(-40).map(p => JSON.stringify({ everyday: p.everyday, source: p.source })).join('\n') + (store.pairs.length > 40 ? `\n… and ${store.pairs.length - 40} more (copy to see all)` : '') : 'None yet.'; }
+$('dRun').addEventListener('click', async () => {
+  if (!sample) return; $('dRun').disabled = true; const per = +$('dPer').value;
+  try {
+    for (const [i, [name, prog]] of Object.entries(DEMOS).entries()) {
+      try { compileSE3(prog); } catch (e) { continue; }
+      $('dStatus').textContent = `App ${i + 1}/${Object.keys(DEMOS).length}: ${name}…`;
+      const text = await ask([{ role: 'user', content: `Here is a small app, written in a strict language called Structured English:\n\n${prog}\n\nWrite ${per} different requests that ordinary people might type to ask for an app like this. Make them varied: some short, some chatty, some vague, a few with small typos, British English. Each must still describe this same app. Reply with one request per line, each inside <r></r>.` }], 'default', $('dStatus'));
+      for (const m of text.matchAll(/<r>([\s\S]*?)<\/r>/g)) addPair(m[1].trim(), prog, 'demo: ' + name);
+    }
+    $('dStatus').textContent = 'Done. Every pair above uses a program that compiles.';
+  } catch (e) { $('dStatus').textContent = 'Stopped: ' + (e.message || e); }
+  finally { $('dRun').disabled = false; }
+});
+$('dCopy').addEventListener('click', async () => { const txt = store.pairs.map(p => JSON.stringify(p)).join('\n'); try { await navigator.clipboard.writeText(txt); $('dStatus').textContent = `Copied ${store.pairs.length} pairs.`; } catch (e) { $('dPairs').textContent = txt; $('dStatus').textContent = 'Copy blocked here; all pairs are shown below to select.'; } });
+$('dClear').addEventListener('click', () => { store.pairs = []; save(); renderPairs(); });
+$('copyAll').addEventListener('click', async () => { try { await navigator.clipboard.writeText(JSON.stringify(store, null, 2)); $('copyAll').textContent = 'Copied'; setTimeout(() => $('copyAll').textContent = 'Copy all results as JSON', 1500); } catch (e) { $('copyAll').textContent = 'Copy blocked'; } });
+$('clearAll').addEventListener('click', () => { store = { a: {}, b: {}, pairs: [] }; save(); renderA(); renderB(); renderPairs(); });
+window.labTest = { inLab, wrapBody, compileSE3, LAB_TASKS };
+renderA(); renderB(); renderPairs();
+}
+</script></body></html>
